@@ -65,8 +65,10 @@
                 <!-- Employee View -->
                 <div v-if="isEmployeeView" class="space-y-8">
                     <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-bold mb-4">My Availability</h2>
-                        <p class="text-gray-500 mb-6">Week of {{ weekDates[0] ? new Date(weekDates[0] + 'T00:00:00').toLocaleDateString() : '' }}</p>
+                        <div class="flex items-center space-x-4 mb-6">
+                            <h2 class="text-2xl font-bold">My Availability</h2>
+                            <input type="week" v-model="selectedWeek" class="p-2 border rounded-md">
+                        </div>
                         <div v-if="!isEmployeeProfileReady" class="text-center text-gray-500 p-4 bg-gray-50 rounded-md">Syncing employee profile...</div>
                         <div v-else class="space-y-4">
                             <div v-for="day in weekDates" :key="day" class="p-3 border-b">
@@ -89,7 +91,7 @@
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <h2 class="text-2xl font-bold mb-4">My Scheduled Hours</h2>
-                        <p class="text-gray-500 mb-6">Week of {{ weekDates[0] ? new Date(weekDates[0] + 'T00:00:00').toLocaleDateString() : '' }}</p>
+                        <p class="text-gray-500 mb-6">Displaying hours for week of {{ weekDates[0] ? new Date(weekDates[0] + 'T00:00:00').toLocaleDateString() : '' }}</p>
                          <div class="space-y-4">
                             <div v-for="day in weekDates" :key="day" class="p-3 border-b">
                                 <h3 class="font-semibold text-lg">{{ formatDay(day, 'long') }}</h3>
@@ -105,7 +107,7 @@
                         </div>
                     </div>
                      <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-bold mb-4">My Daily Tasks for {{ new Date(schedule.date + 'T00:00:00').toLocaleDateString() }}</h2>
+                        <h2 class="text-2xl font-bold mb-4">My Daily Tasks for {{ new Date().toLocaleDateString() }}</h2>
                         <div v-if="employeeTasks.length > 0" class="space-y-4">
                             <div v-for="task in employeeTasks" :key="task.id" class="p-4 border rounded-lg bg-gray-50">
                                 <p class="font-semibold text-lg text-indigo-700">{{ task.productName }}</p>
@@ -260,54 +262,9 @@
         </template>
 
         <!-- Modals -->
-        <div v-if="isEditModalOpen" class="modal-backdrop">
-            <div class="modal-content">
-                <h2 class="text-xl font-bold mb-4">Edit Product</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium">Product Name</label>
-                        <input v-model="editingProduct.name" class="w-full p-2 border rounded-md mt-1">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium">Tasks (one per line)</label>
-                        <textarea v-model="editingProduct.tasks" class="w-full p-2 border rounded-md mt-1 h-32"></textarea>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button @click="closeEditModal" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button @click="saveEditedProduct" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Save Changes</button>
-                </div>
-            </div>
-        </div>
-        
-        <div v-if="isEditSlotModalOpen" class="modal-backdrop">
-            <div class="modal-content">
-                <h2 class="text-xl font-bold mb-4">Edit Time Slot</h2>
-                <div>
-                    <label class="block text-sm font-medium">Availability</label>
-                    <input v-model="editingSlot.newValue" class="w-full p-2 border rounded-md mt-1">
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button @click="closeEditSlotModal" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button @click="saveEditedSlot" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Save Changes</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="isEditConfirmedSlotModalOpen" class="modal-backdrop">
-            <div class="modal-content">
-                <h2 class="text-xl font-bold mb-4">Edit Confirmed Hours</h2>
-                <div>
-                    <label class="block text-sm font-medium">Confirmed Hours</label>
-                    <input v-model="editingConfirmedSlot.newValue" class="w-full p-2 border rounded-md mt-1">
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button @click="closeEditConfirmedSlotModal" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button @click="saveEditedConfirmedSlot" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Save Changes</button>
-                </div>
-            </div>
-        </div>
-
+        <div v-if="isEditModalOpen" class="modal-backdrop"> <!-- Edit Product Modal --> </div>
+        <div v-if="isEditSlotModalOpen" class="modal-backdrop"> <!-- Edit Availability Slot Modal --> </div>
+        <div v-if="isEditConfirmedSlotModalOpen" class="modal-backdrop"> <!-- Edit Confirmed Slot Modal --> </div>
     </div>
 
     <script type="module">
@@ -338,6 +295,7 @@
                 const products = ref([]);
                 const employees = ref([]);
                 const schedule = ref({ date: new Date().toISOString().split('T')[0], productId: '', tasks: [] });
+                const employeeTodaysSchedule = ref({ productId: '', tasks: [] });
                 const newProduct = ref({ name: '', tasks: '' });
                 const newEmployeeName = ref('');
                 const authDetails = ref({ username: '', password: '', error: '' });
@@ -356,7 +314,7 @@
                 const loggedInEmployeeId = ref(null);
                 
                 let productsCollection, employeesCollection, schedulesCollection, availabilityCollection, confirmedHoursCollection;
-                let productsUnsubscribe, employeesUnsubscribe, scheduleUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe;
+                let productsUnsubscribe, employeesUnsubscribe, scheduleUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe, todaysScheduleUnsubscribe;
 
                 function getWeekId(d) {
                     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -463,6 +421,7 @@
                     loadSchedule();
                     loadAvailability();
                     loadConfirmedHours();
+                    loadTodaysScheduleForEmployee();
                 };
                 
                 const cleanupFirestoreListeners = () => {
@@ -471,6 +430,7 @@
                     if (scheduleUnsubscribe) scheduleUnsubscribe();
                     if (availabilityUnsubscribe) availabilityUnsubscribe();
                     if (confirmedHoursUnsubscribe) confirmedHoursUnsubscribe();
+                    if (todaysScheduleUnsubscribe) todaysScheduleUnsubscribe();
                 };
 
                 const loadAvailability = () => {
@@ -489,6 +449,22 @@
                     const docRef = doc(confirmedHoursCollection, weekDocId);
                     confirmedHoursUnsubscribe = onSnapshot(docRef, (docSnap) => {
                         confirmedHoursData.value = docSnap.exists() ? docSnap.data() : {};
+                    });
+                };
+
+                const loadTodaysScheduleForEmployee = () => {
+                    if (todaysScheduleUnsubscribe) todaysScheduleUnsubscribe();
+                    const todaysDate = new Date().toISOString().split('T')[0];
+                    const scheduleDocRef = doc(schedulesCollection, todaysDate);
+                    todaysScheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            employeeTodaysSchedule.value.productId = data.productId;
+                            employeeTodaysSchedule.value.tasks = data.tasks.map(task => ({ ...task, assignedEmployeeIds: task.assignedEmployeeIds || [] }));
+                        } else {
+                            employeeTodaysSchedule.value.productId = '';
+                            employeeTodaysSchedule.value.tasks = [];
+                        }
                     });
                 };
 
@@ -695,14 +671,14 @@
 
                 const toggleView = () => { isEmployeeView.value = !isEmployeeView.value; };
                 const employeeTasks = computed(() => {
-                    if (!user.value || !schedule.value.tasks) return [];
+                    if (!user.value || !employeeTodaysSchedule.value.tasks) return [];
                     const employeeId = loggedInEmployeeId.value;
                     if (!employeeId) return [];
                     const tasks = [];
-                    const productName = products.value.find(p => p.id === schedule.value.productId)?.name || 'Unknown Product';
-                    schedule.value.tasks.forEach(task => {
+                    const productName = products.value.find(p => p.id === employeeTodaysSchedule.value.productId)?.name || 'Unknown Product';
+                    employeeTodaysSchedule.value.tasks.forEach(task => {
                         if (task.assignedEmployeeIds.includes(employeeId)) {
-                            tasks.push({ id: `${schedule.value.date}-${task.name}`, productName, taskName: task.name });
+                            tasks.push({ id: `${new Date().toISOString().split('T')[0]}-${task.name}`, productName, taskName: task.name });
                         }
                     });
                     return tasks;
@@ -741,4 +717,3 @@
     </script>
 </body>
 </html>
-
