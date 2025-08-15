@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Scheduler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: flex;
+            justify-content: center; align-items: center; z-index: 50;
+        }
+        .modal-content {
+            background-color: white; padding: 2rem; border-radius: 0.5rem;
+            width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app" v-cloak class="p-4 md:p-8 max-w-7xl mx-auto">
+        
+        <div v-if="!isAuthReady" class="text-center p-10"><p class="text-lg font-medium text-gray-600">Loading Application...</p></div>
+
+        <template v-if="isAuthReady">
+            <header class="mb-8 p-4 bg-white rounded-lg shadow-md">
+                <div class="flex justify-between items-center flex-wrap gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-indigo-600">Production Scheduler</h1>
+                        <p class="text-gray-500">Manage your daily production tasks and employee assignments.</p>
+                    </div>
+                    <div v-if="user" class="flex items-center space-x-4">
+                        <span class="text-sm font-medium hidden sm:inline">Welcome, {{ user.displayName }}</span>
+                        <button v-if="isAdmin" @click="toggleView" class="px-4 py-2 text-sm font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600">Switch to {{ isEmployeeView ? 'Admin' : 'Employee' }} View</button>
+                        <button @click="logout" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <div v-if="!user" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
+                <!-- Auth Screen -->
+                <h2 class="text-2xl font-bold text-center mb-6">Login or Register</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" v-model="authDetails.username" placeholder="e.g., Arissa" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" v-model="authDetails.password" placeholder="••••••••" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="flex items-center justify-between space-x-4">
+                        <button @click="login" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Login</button>
+                        <button @click="register" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">Register</button>
+                    </div>
+                    <p v-if="authDetails.error" class="text-red-500 text-sm mt-2">{{ authDetails.error }}</p>
+                </div>
+            </div>
+
+            <main v-if="user">
+                <!-- Employee View -->
+                <div v-if="isEmployeeView" class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="flex items-center space-x-4 mb-6">
+                            <h2 class="text-2xl font-bold">My Availability</h2>
+                            <input type="week" v-model="selectedWeek" class="p-2 border rounded-md">
+                        </div>
+                        <div v-if="!isEmployeeProfileReady" class="text-center text-gray-500 p-4 bg-gray-50 rounded-md">Syncing employee profile...</div>
+                        <div v-else class="space-y-4">
+                            <div v-for="day in weekDates" :key="day" class="p-3 border-b">
+                                <h3 class="font-semibold text-lg">{{ formatDay(day, 'long') }}</h3>
+                                <div v-if="getEmployeeAvailability(day).length > 0" class="mt-2 space-y-2">
+                                    <div v-for="(slot, index) in getEmployeeAvailability(day)" :key="index" class="flex justify-between items-center p-2 bg-gray-100 rounded-md">
+                                        <span class="text-sm font-medium text-gray-800">{{ slot }}</span>
+                                        <div>
+                                            <button @click="openEditSlotModal(day, slot)" class="text-xs text-blue-600 hover:text-blue-800 font-semibold mr-2">Edit</button>
+                                            <button @click="removeEmployeeTimeSlot(day, slot)" class="text-xs text-red-600 hover:text-red-800 font-semibold">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex space-x-2">
+                                    <input v-model="newTimeSlots[day]" @keyup.enter="addEmployeeTimeSlot(day, newTimeSlots[day])" type="text" placeholder="e.g., 9am-5pm" class="p-2 border rounded-md w-full sm:w-auto" :disabled="!isEmployeeProfileReady">
+                                    <button @click="addEmployeeTimeSlot(day, newTimeSlots[day])" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-gray-400" :disabled="!isEmployeeProfileReady">Add Hours</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-bold mb-4">My Scheduled Hours</h2>
+                        <p class="text-gray-500 mb-6">Displaying hours for week of {{ weekDates[0] ? new Date(weekDates[0] + 'T00:00:00').toLocaleDateString() : '' }}</p>
+                         <div class="space-y-4">
+                            <div v-for="day in weekDates" :key="day" class="p-3 border-b">
+                                <h3 class="font-semibold text-lg">{{ formatDay(day, 'long') }}</h3>
+                                <div v-if="getConfirmedHoursForEmployee(day).length > 0" class="mt-2 space-y-2">
+                                    <div v-for="(slot, index) in getConfirmedHoursForEmployee(day)" :key="index" class="p-2 bg-blue-50 rounded-md">
+                                        <span class="text-sm font-medium text-blue-800">{{ slot }}</span>
+                                    </div>
+                                </div>
+                                <div v-else class="mt-2 text-sm text-gray-400">
+                                    No hours scheduled for this day.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-bold mb-4">My Daily Tasks for {{ new Date().toLocaleDateString() }}</h2>
+                        <div v-if="employeeTasks.length > 0" class="space-y-4">
+                            <div v-for="task in employeeTasks" :key="task.id" class="p-4 border rounded-lg bg-gray-50">
+                                <p class="font-semibold text-lg text-indigo-700">{{ task.productName }}</p>
+                                <p class="text-gray-600">Task: <span class="font-medium">{{ task.taskName }}</span></p>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <p class="text-gray-500">You have no tasks assigned for today.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin View -->
+                <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 space-y-8">
+                        <!-- Product & Employee Management -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-xl font-bold mb-4">Manage Products</h2>
+                            <div class="space-y-2 mb-4">
+                                <input v-model="newProduct.name" @keyup.enter="addProduct" class="w-full p-2 border rounded-md" placeholder="New product name">
+                                <textarea v-model="newProduct.tasks" class="w-full p-2 border rounded-md" placeholder="Tasks (one per line)"></textarea>
+                                <button @click="addProduct" class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add Product</button>
+                            </div>
+                            <div class="space-y-2">
+                                <div v-for="product in products" :key="product.id" class="p-3 border rounded-md bg-gray-50">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-semibold">{{ product.name }}</h3>
+                                        <div class="flex space-x-2">
+                                            <button @click="openEditModal(product)" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
+                                            <button @click="deleteProduct(product.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                        </div>
+                                    </div>
+                                    <ul class="list-disc list-inside text-sm text-gray-600 mt-1"><li v-for="task in product.tasks" :key="task">{{ task }}</li></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-xl font-bold mb-4">Manage Employees</h2>
+                            <div class="flex space-x-2 mb-4">
+                                <input v-model="newEmployeeName" @keyup.enter="addEmployee" class="w-full p-2 border rounded-md" placeholder="New employee name">
+                                <button @click="addEmployee" class="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add</button>
+                            </div>
+                            <div class="space-y-2">
+                                <div v-for="employee in employees" :key="employee.id" class="flex justify-between items-center p-2 border rounded-md bg-gray-50">
+                                    <span>{{ employee.name }}</span>
+                                    <button @click="deleteEmployee(employee.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 space-y-8">
+                        <!-- Staff Availability -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <div class="flex items-center space-x-4 mb-6">
+                                <label for="week-select" class="font-medium">Staff Availability:</label>
+                                <input type="week" v-model="selectedWeek" id="week-select" class="p-2 border rounded-md">
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                            <th v-for="day in weekDates" :key="day" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ formatDay(day, 'short') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr v-for="employee in employees" :key="employee.id">
+                                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ employee.name }}</td>
+                                            <td v-for="day in weekDates" :key="day" class="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div class="flex flex-col gap-1">
+                                                    <span v-for="(slot, index) in getEmployeeAvailabilityForAdmin(employee.id, day)" :key="index" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                         {{ slot }}
+                                                    </span>
+                                                    <span v-if="!getEmployeeAvailabilityForAdmin(employee.id, day) || getEmployeeAvailabilityForAdmin(employee.id, day).length === 0" class="text-gray-400">No hours set</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Confirmed Staff Hours -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-bold mb-4">Confirmed Staff Hours</h2>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                            <th v-for="day in weekDates" :key="day" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ formatDay(day, 'short') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr v-for="employee in employees" :key="employee.id">
+                                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ employee.name }}</td>
+                                            <td v-for="day in weekDates" :key="day" class="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div class="flex flex-col gap-1">
+                                                     <div v-for="(slot, index) in getConfirmedHoursForAdmin(employee.id, day)" :key="index" class="flex justify-between items-center p-1 bg-blue-50 rounded-md">
+                                                        <span class="text-xs font-medium text-blue-800">{{ slot }}</span>
+                                                        <div>
+                                                            <button @click="openEditConfirmedSlotModal(employee.id, day, slot)" class="text-xs text-blue-600 hover:text-blue-800 font-semibold mr-1">E</button>
+                                                            <button @click="removeConfirmedTimeSlot(employee.id, day, slot)" class="text-xs text-red-600 hover:text-red-800 font-semibold">D</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1">
+                                                    <input v-model="newConfirmedHours[employee.id + day]" @keyup.enter="addConfirmedTimeSlot(employee.id, day, newConfirmedHours[employee.id + day])" type="text" placeholder="+ Add" class="p-1 border rounded-md w-full text-xs">
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Daily Production Plan -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-bold mb-4">Daily Production Plan</h2>
+                            <div class="flex items-center space-x-4 mb-6 flex-wrap gap-y-2">
+                                <label for="production-date" class="font-medium">Date:</label>
+                                <input type="date" v-model="schedule.date" id="production-date" class="p-2 border rounded-md">
+                                <label for="product-select" class="font-medium">Product:</label>
+                                <select v-model="schedule.productId" @change="updateProductTasks" id="product-select" class="p-2 border rounded-md">
+                                    <option disabled value="">Select a product</option>
+                                    <option v-for="product in products" :value="product.id">{{ product.name }}</option>
+                                </select>
+                            </div>
+                            <div class="space-y-6">
+                                <div v-if="!schedule.productId"><p class="text-center text-gray-500">Please select a product to see its tasks.</p></div>
+                                <div v-else v-for="(task, index) in schedule.tasks" :key="index" class="p-4 border rounded-lg bg-gray-50">
+                                    <h3 class="font-semibold text-lg text-indigo-800">{{ task.name }}</h3>
+                                    <div class="mt-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Assigned Employees:</label>
+                                        <div class="flex flex-wrap gap-2 items-center">
+                                            <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                                                {{ getEmployeeName(empId) }}
+                                                <button @click="unassignEmployee(task, empId)" class="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-500"><svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg></button>
+                                            </span>
+                                            <select @change="assignEmployee($event, task)" class="mt-1 block w-auto p-1 border border-gray-300 rounded-md shadow-sm">
+                                                <option value="">+ Assign...</option>
+                                                <option v-for="employee in unassignedEmployees(task)" :value="employee.id">
+                                                    {{ isEmployeeAvailable(employee.id, schedule.date) ? '🟢' : '🔴' }} {{ employee.name }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </template>
+
+        <!-- Modals -->
+        <div v-if="isEditModalOpen" class="modal-backdrop"> <!-- Edit Product Modal --> </div>
+        <div v-if="isEditSlotModalOpen" class="modal-backdrop"> <!-- Edit Availability Slot Modal --> </div>
+        <div v-if="isEditConfirmedSlotModalOpen" class="modal-backdrop"> <!-- Edit Confirmed Slot Modal --> </div>
+    </div>
+
+    <script type="module">
+        import { createApp, ref, onMounted, computed, watch } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAoO9-qd8d1IZIDYFm_KRMHIUmOneTb6bM",
+            authDomain: "production-scheduling-c31f0.firebaseapp.com",
+            projectId: "production-scheduling-c31f0",
+            storageBucket: "production-scheduling-c31f0.appspot.com",
+            messagingSenderId: "123538870599",
+            appId: "1:123538870599:web:da1b0f8f2cf798d52afc62"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        createApp({
+            setup() {
+                const user = ref(null);
+                const isAuthReady = ref(false);
+                const isAdmin = ref(false);
+                const isEmployeeView = ref(true);
+                const products = ref([]);
+                const employees = ref([]);
+                const schedule = ref({ date: new Date().toISOString().split('T')[0], productId: '', tasks: [] });
+                const employeeTodaysSchedule = ref({ productId: '', tasks: [] });
+                const newProduct = ref({ name: '', tasks: '' });
+                const newEmployeeName = ref('');
+                const authDetails = ref({ username: '', password: '', error: '' });
+                const isEditModalOpen = ref(false);
+                const editingProduct = ref({ id: null, name: '', tasks: '' });
+                const selectedWeek = ref(getWeekId(new Date()));
+                const availabilityData = ref({});
+                const confirmedHoursData = ref({});
+                const newTimeSlots = ref({});
+                const newConfirmedHours = ref({});
+                const isEditSlotModalOpen = ref(false);
+                const editingSlot = ref({ day: null, originalValue: '', newValue: '' });
+                const isEditConfirmedSlotModalOpen = ref(false);
+                const editingConfirmedSlot = ref({ employeeId: null, day: null, originalValue: '', newValue: '' });
+                const isEmployeeProfileReady = ref(false);
+                const loggedInEmployeeId = ref(null);
+                
+                let productsCollection, employeesCollection, schedulesCollection, availabilityCollection, confirmedHoursCollection;
+                let productsUnsubscribe, employeesUnsubscribe, scheduleUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe, todaysScheduleUnsubscribe;
+
+                function getWeekId(d) {
+                    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+                    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+                    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+                    return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
+                }
+
+                function getDateOfWeek(w, y) {
+                    const simple = new Date(y, 0, 1 + (w - 1) * 7);
+                    const dow = simple.getDay();
+                    const ISOweekStart = simple;
+                    if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+                    else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+                    return ISOweekStart;
+                }
+
+                const weekDates = computed(() => {
+                    if (!selectedWeek.value) return [];
+                    const [year, week] = selectedWeek.value.split('-W');
+                    const startDate = getDateOfWeek(parseInt(week), parseInt(year));
+                    return Array.from({ length: 7 }, (_, i) => {
+                        const d = new Date(startDate);
+                        d.setDate(d.getDate() + i);
+                        return d.toISOString().split('T')[0];
+                    });
+                });
+
+                const formatDay = (dateString, length) => {
+                    const date = new Date(dateString + 'T00:00:00');
+                    if (length === 'short') {
+                        return date.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+                    }
+                    return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+                };
+
+                onMounted(() => {
+                    onAuthStateChanged(auth, (currentUser) => {
+                        user.value = currentUser;
+                        if (currentUser) {
+                            isAdmin.value = currentUser.displayName?.toLowerCase() === 'joshua';
+                            isEmployeeView.value = !isAdmin.value;
+                            initializeFirestoreListeners();
+                        } else {
+                            isAdmin.value = false;
+                            cleanupFirestoreListeners();
+                        }
+                        isAuthReady.value = true;
+                    });
+                });
+
+                const register = async () => {
+                    authDetails.value.error = '';
+                    const username = authDetails.value.username.trim();
+                    if (!username) { authDetails.value.error = "Username cannot be empty."; return; }
+                    const email = username.toLowerCase() + '@scheduler.app';
+                    try {
+                        const q = query(collection(db, 'employees'), where("name", "==", username));
+                        const querySnapshot = await getDocs(q);
+                        if (!querySnapshot.empty) { authDetails.value.error = `Username "${username}" is already taken.`; return; }
+
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, authDetails.value.password);
+                        await updateProfile(userCredential.user, { displayName: username });
+                        await addDoc(collection(db, 'employees'), { name: username });
+                        user.value = auth.currentUser;
+                    } catch (error) {
+                        authDetails.value.error = error.message;
+                    }
+                };
+
+                const login = async () => {
+                    authDetails.value.error = '';
+                    if (!authDetails.value.username.trim()) { authDetails.value.error = "Username cannot be empty."; return; }
+                    const email = authDetails.value.username.toLowerCase().trim() + '@scheduler.app';
+                    try {
+                        await setPersistence(auth, browserLocalPersistence);
+                        await signInWithEmailAndPassword(auth, email, authDetails.value.password);
+                    } catch (error) {
+                        authDetails.value.error = "Invalid username or password.";
+                    }
+                };
+                
+                const logout = async () => { await signOut(auth); };
+
+                const initializeFirestoreListeners = () => {
+                    productsCollection = collection(db, 'products');
+                    employeesCollection = collection(db, 'employees');
+                    schedulesCollection = collection(db, 'schedules');
+                    availabilityCollection = collection(db, 'availability');
+                    confirmedHoursCollection = collection(db, 'confirmed_hours');
+                    
+                    productsUnsubscribe = onSnapshot(query(productsCollection), snap => products.value = snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    
+                    employeesUnsubscribe = onSnapshot(query(employeesCollection), (snap) => {
+                        employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        if (user.value && user.value.displayName) {
+                            const employee = employees.value.find(e => e.name.toLowerCase() === user.value.displayName.toLowerCase());
+                            loggedInEmployeeId.value = employee ? employee.id : null;
+                            isEmployeeProfileReady.value = !!employee;
+                        }
+                    });
+                    
+                    loadSchedule();
+                    loadAvailability();
+                    loadConfirmedHours();
+                    loadTodaysScheduleForEmployee();
+                };
+                
+                const cleanupFirestoreListeners = () => {
+                    if (productsUnsubscribe) productsUnsubscribe();
+                    if (employeesUnsubscribe) employeesUnsubscribe();
+                    if (scheduleUnsubscribe) scheduleUnsubscribe();
+                    if (availabilityUnsubscribe) availabilityUnsubscribe();
+                    if (confirmedHoursUnsubscribe) confirmedHoursUnsubscribe();
+                    if (todaysScheduleUnsubscribe) todaysScheduleUnsubscribe();
+                };
+
+                const loadAvailability = () => {
+                    if (availabilityUnsubscribe) availabilityUnsubscribe();
+                    if (!user.value || !selectedWeek.value) return;
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const docRef = doc(availabilityCollection, weekDocId);
+                    availabilityUnsubscribe = onSnapshot(docRef, (docSnap) => {
+                        availabilityData.value = docSnap.exists() ? docSnap.data() : {};
+                    });
+                };
+                const loadConfirmedHours = () => {
+                    if (confirmedHoursUnsubscribe) confirmedHoursUnsubscribe();
+                    if (!user.value || !selectedWeek.value) return;
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const docRef = doc(confirmedHoursCollection, weekDocId);
+                    confirmedHoursUnsubscribe = onSnapshot(docRef, (docSnap) => {
+                        confirmedHoursData.value = docSnap.exists() ? docSnap.data() : {};
+                    });
+                };
+
+                const loadTodaysScheduleForEmployee = () => {
+                    if (todaysScheduleUnsubscribe) todaysScheduleUnsubscribe();
+                    const todaysDate = new Date().toISOString().split('T')[0];
+                    const scheduleDocRef = doc(schedulesCollection, todaysDate);
+                    todaysScheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            employeeTodaysSchedule.value.productId = data.productId;
+                            employeeTodaysSchedule.value.tasks = data.tasks.map(task => ({ ...task, assignedEmployeeIds: task.assignedEmployeeIds || [] }));
+                        } else {
+                            employeeTodaysSchedule.value.productId = '';
+                            employeeTodaysSchedule.value.tasks = [];
+                        }
+                    });
+                };
+
+                const addEmployeeTimeSlot = async (day, timeSlot) => {
+                    if (!timeSlot || !timeSlot.trim()) return;
+                    const employeeId = loggedInEmployeeId.value;
+                    if (!employeeId) return;
+
+                    const currentSlots = getEmployeeAvailability(day) || [];
+                    if (currentSlots.includes(timeSlot.trim())) return;
+
+                    const updatedSlots = [...currentSlots, timeSlot.trim()];
+                    
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const availabilityDocRef = doc(availabilityCollection, weekDocId);
+                    await setDoc(availabilityDocRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
+                    newTimeSlots.value[day] = '';
+                };
+
+                const removeEmployeeTimeSlot = async (day, timeSlot) => {
+                    const employeeId = loggedInEmployeeId.value;
+                    if (!employeeId) return;
+
+                    const currentSlots = getEmployeeAvailability(day) || [];
+                    const updatedSlots = currentSlots.filter(slot => slot !== timeSlot);
+
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const availabilityDocRef = doc(availabilityCollection, weekDocId);
+                    await setDoc(availabilityDocRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
+                };
+                
+                const openEditSlotModal = (day, slot) => {
+                    editingSlot.value = { day, originalValue: slot, newValue: slot };
+                    isEditSlotModalOpen.value = true;
+                };
+
+                const closeEditSlotModal = () => {
+                    isEditSlotModalOpen.value = false;
+                };
+
+                const saveEditedSlot = async () => {
+                    const { day, originalValue, newValue } = editingSlot.value;
+                    if (!newValue || !newValue.trim()) return;
+
+                    const employeeId = loggedInEmployeeId.value;
+                    if (!employeeId) return;
+
+                    const currentSlots = getEmployeeAvailability(day) || [];
+                    const updatedSlots = currentSlots.map(s => (s === originalValue ? newValue.trim() : s));
+
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const availabilityDocRef = doc(availabilityCollection, weekDocId);
+                    await setDoc(availabilityDocRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
+
+                    closeEditSlotModal();
+                };
+
+                const addConfirmedTimeSlot = async (employeeId, day, timeSlot) => {
+                    if (!timeSlot || !timeSlot.trim()) return;
+                    const currentSlots = getConfirmedHoursForAdmin(employeeId, day) || [];
+                    if (currentSlots.includes(timeSlot.trim())) return;
+                    const updatedSlots = [...currentSlots, timeSlot.trim()];
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const docRef = doc(confirmedHoursCollection, weekDocId);
+                    await setDoc(docRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
+                    newConfirmedHours.value[employeeId + day] = '';
+                };
+
+                const removeConfirmedTimeSlot = async (employeeId, day, timeSlot) => {
+                    const currentSlots = getConfirmedHoursForAdmin(employeeId, day) || [];
+                    const updatedSlots = currentSlots.filter(slot => slot !== timeSlot);
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const docRef = doc(confirmedHoursCollection, weekDocId);
+                    await setDoc(docRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
+                };
+
+                const openEditConfirmedSlotModal = (employeeId, day, slot) => {
+                    editingConfirmedSlot.value = { employeeId, day, originalValue: slot, newValue: slot };
+                    isEditConfirmedSlotModalOpen.value = true;
+                };
+
+                const closeEditConfirmedSlotModal = () => {
+                    isEditConfirmedSlotModalOpen.value = false;
+                };
+
+                const saveEditedConfirmedSlot = async () => {
+                    const { employeeId, day, originalValue, newValue } = editingConfirmedSlot.value;
+                    if (!newValue || !newValue.trim()) return;
+                    const currentSlots = getConfirmedHoursForAdmin(employeeId, day) || [];
+                    const updatedSlots = currentSlots.map(s => (s === originalValue ? newValue.trim() : s));
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const docRef = doc(confirmedHoursCollection, weekDocId);
+                    await setDoc(docRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
+                    closeEditConfirmedSlotModal();
+                };
+
+                const getEmployeeAvailability = (day) => {
+                    const employeeId = loggedInEmployeeId.value;
+                    if (!employeeId) return [];
+                    return availabilityData.value[employeeId]?.[day] || [];
+                };
+
+                const getEmployeeAvailabilityForAdmin = (employeeId, day) => {
+                    return availabilityData.value[employeeId]?.[day] || [];
+                };
+
+                const getConfirmedHoursForAdmin = (employeeId, day) => {
+                    return confirmedHoursData.value[employeeId]?.[day] || [];
+                };
+                
+                const getConfirmedHoursForEmployee = (day) => {
+                    const employeeId = loggedInEmployeeId.value;
+                    if (!employeeId) return [];
+                    return confirmedHoursData.value[employeeId]?.[day] || [];
+                };
+
+                const isEmployeeAvailable = (employeeId, day) => {
+                    const slots = availabilityData.value[employeeId]?.[day];
+                    return Array.isArray(slots) && slots.length > 0;
+                };
+
+                watch(selectedWeek, () => {
+                    loadAvailability();
+                    loadConfirmedHours();
+                });
+
+                const addProduct = async () => {
+                    if (!newProduct.value.name.trim()) return;
+                    await addDoc(productsCollection, { name: newProduct.value.name, tasks: newProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
+                    newProduct.value = { name: '', tasks: '' };
+                };
+                const deleteProduct = async (id) => { await deleteDoc(doc(productsCollection, id)); };
+                const openEditModal = (product) => {
+                    editingProduct.value = { id: product.id, name: product.name, tasks: product.tasks.join('\n') };
+                    isEditModalOpen.value = true;
+                };
+                const closeEditModal = () => { isEditModalOpen.value = false; };
+                const saveEditedProduct = async () => {
+                    const productDocRef = doc(productsCollection, editingProduct.value.id);
+                    await updateDoc(productDocRef, { name: editingProduct.value.name, tasks: editingProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
+                    closeEditModal();
+                };
+                const addEmployee = async () => {
+                    const name = newEmployeeName.value.trim();
+                    if (!name) return;
+                    const q = query(employeesCollection, where("name", "==", name));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        alert(`Employee "${name}" already exists.`);
+                        newEmployeeName.value = '';
+                        return;
+                    }
+                    await addDoc(employeesCollection, { name });
+                    newEmployeeName.value = '';
+                };
+                const deleteEmployee = async (id) => { await deleteDoc(doc(employeesCollection, id)); };
+
+                const loadSchedule = async () => {
+                    if (!user.value) return;
+                    if (scheduleUnsubscribe) scheduleUnsubscribe();
+                    const scheduleDocRef = doc(schedulesCollection, schedule.value.date);
+                    scheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            schedule.value.productId = data.productId;
+                            schedule.value.tasks = data.tasks.map(task => ({ ...task, assignedEmployeeIds: task.assignedEmployeeIds || [] }));
+                        } else {
+                            schedule.value.productId = '';
+                            schedule.value.tasks = [];
+                        }
+                    });
+                };
+
+                const updateProductTasks = () => {
+                    const selectedProduct = products.value.find(p => p.id === schedule.value.productId);
+                    schedule.value.tasks = selectedProduct ? selectedProduct.tasks.map(name => ({ name, assignedEmployeeIds: [] })) : [];
+                    saveSchedule();
+                };
+
+                const saveSchedule = async () => {
+                    if (!user.value || !schedule.value.date) return;
+                    await setDoc(doc(schedulesCollection, schedule.value.date), {
+                        productId: schedule.value.productId,
+                        tasks: JSON.parse(JSON.stringify(schedule.value.tasks))
+                    });
+                };
+
+                const assignEmployee = (event, task) => {
+                    const employeeId = event.target.value;
+                    if (employeeId && !task.assignedEmployeeIds.includes(employeeId)) {
+                        task.assignedEmployeeIds.push(employeeId);
+                        saveSchedule();
+                    }
+                    event.target.value = '';
+                };
+
+                const unassignEmployee = (task, employeeId) => {
+                    task.assignedEmployeeIds = task.assignedEmployeeIds.filter(id => id !== employeeId);
+                    saveSchedule();
+                };
+
+                const getEmployeeName = (id) => employees.value.find(e => e.id === id)?.name || 'Unknown';
+                const unassignedEmployees = (task) => employees.value.filter(emp => !task.assignedEmployeeIds.includes(emp.id));
+
+                const toggleView = () => { isEmployeeView.value = !isEmployeeView.value; };
+                const employeeTasks = computed(() => {
+                    if (!user.value || !employeeTodaysSchedule.value.tasks) return [];
+                    const employeeId = loggedInEmployeeId.value;
+                    if (!employeeId) return [];
+                    const tasks = [];
+                    const productName = products.value.find(p => p.id === employeeTodaysSchedule.value.productId)?.name || 'Unknown Product';
+                    employeeTodaysSchedule.value.tasks.forEach(task => {
+                        if (task.assignedEmployeeIds.includes(employeeId)) {
+                            tasks.push({ id: `${new Date().toISOString().split('T')[0]}-${task.name}`, productName, taskName: task.name });
+                        }
+                    });
+                    return tasks;
+                });
+
+                watch(() => schedule.value.date, (newDate) => {
+                    loadSchedule();
+                    const newWeekId = getWeekId(new Date(newDate + 'T00:00:00'));
+                    if (newWeekId !== selectedWeek.value) {
+                        selectedWeek.value = newWeekId;
+                    }
+                });
+
+                return {
+                    user, isAuthReady, authDetails, register, login, logout,
+                    isAdmin, isEmployeeView, toggleView,
+                    products, newProduct, addProduct, deleteProduct,
+                    employees, newEmployeeName, addEmployee, deleteEmployee,
+                    schedule, loadSchedule, updateProductTasks, saveSchedule,
+                    isEditModalOpen, editingProduct, openEditModal, closeEditModal, saveEditedProduct,
+                    assignEmployee, unassignEmployee, getEmployeeName, unassignedEmployees,
+                    employeeTasks,
+                    selectedWeek, weekDates, formatDay,
+                    getEmployeeAvailability, getEmployeeAvailabilityForAdmin,
+                    isEmployeeAvailable, newTimeSlots, addEmployeeTimeSlot, removeEmployeeTimeSlot,
+                    isEditSlotModalOpen, editingSlot, openEditSlotModal, closeEditSlotModal, saveEditedSlot,
+                    isEmployeeProfileReady,
+                    // Confirmed Hours
+                    confirmedHoursData, newConfirmedHours, addConfirmedTimeSlot, removeConfirmedTimeSlot,
+                    getConfirmedHoursForAdmin, isEditConfirmedSlotModalOpen, editingConfirmedSlot,
+                    openEditConfirmedSlotModal, closeEditConfirmedSlotModal, saveEditedConfirmedSlot,
+                    getConfirmedHoursForEmployee
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
