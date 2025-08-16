@@ -1,0 +1,21 @@
+{
+  "name": "Made4U Foods Production Staffing",
+  "short_name": "Production Staffing",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "description": "A web app for production staffing and scheduling.",
+  "icons": [
+    {
+      "src": "https://storage.googleapis.com/gemini-prod-us-west1-159117565435-us-west1/uploaded_files/031fdbc7-a174-46bf-9528-acca9c858c2b.avif",
+      "sizes": "192x192",
+      "type": "image/avif"
+    },
+    {
+      "src": "https://storage.googleapis.com/gemini-prod-us-west1-159117565435-us-west1/uploaded_files/031fdbc7-a174-46bf-9528-acca9c858c2b.avif",
+      "sizes": "512x512",
+      "type": "image/avif"
+    }
+  ]
+}
