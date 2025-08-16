@@ -17,25 +17,18 @@
             background-color: white; padding: 2rem; border-radius: 0.5rem;
             width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-        .login-background {
-            background-image: url('https://storage.googleapis.com/gemini-prod-us-west1-159117565435-us-west1/uploaded_files/bbf4027f-f9fb-414a-8e3c-aa85d855b7d7.png');
-            background-color: #ffffff; /* White fallback */
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
         [v-cloak] { display: none; }
     </style>
 </head>
-<body :class="{'bg-gray-100': user, 'login-background': !user}" class="text-gray-800">
+<body class="bg-gray-100 text-gray-800">
 
     <div id="app" v-cloak class="p-4 md:p-8 max-w-7xl mx-auto">
         
         <div v-if="!isAuthReady" class="text-center p-10"><p class="text-lg font-medium text-gray-600">Loading Application...</p></div>
 
         <template v-if="isAuthReady">
-            <header class="mb-8 p-4 bg-white rounded-lg shadow-md">
-                <div v-if="user" class="flex justify-between items-center flex-wrap gap-4">
+            <header v-if="user" class="mb-8 p-4 bg-white rounded-lg shadow-md">
+                <div class="flex justify-between items-center flex-wrap gap-4">
                     <div>
                         <h1 class="text-3xl font-bold text-indigo-600">Production Staffing</h1>
                         <p class="text-gray-500">Manage your daily production tasks and employee assignments.</p>
@@ -46,29 +39,30 @@
                         <button @click="logout" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600">Logout</button>
                     </div>
                 </div>
-                <div v-else class="flex justify-center items-center gap-4">
-                    <img src="https://storage.googleapis.com/gemini-prod-us-west1-159117565435-us-west1/uploaded_files/bbf4027f-f9fb-414a-8e3c-aa85d855b7d7.png" alt="Made4U Foods Logo" class="h-12">
-                    <h1 class="text-3xl font-bold text-indigo-600 text-center">Made4U Foods Production Staffing</h1>
-                </div>
             </header>
 
-            <div v-if="!user" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
-                <!-- Auth Screen -->
-                <h2 class="text-2xl font-bold text-center mb-6">Login or Register</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                        <input type="text" v-model="authDetails.username" placeholder="e.g. First name.Last name" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+            <div v-if="!user" class="min-h-screen flex flex-col items-center justify-center p-4">
+                 <div class="w-full max-w-7xl p-4 bg-white rounded-lg shadow-md mb-8">
+                     <h1 class="text-3xl font-bold text-indigo-600 text-center">Made4U Foods Production Staffing</h1>
+                 </div>
+                <div class="max-w-md w-full bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-2xl">
+                    <!-- Auth Screen -->
+                    <h2 class="text-2xl font-bold text-center mb-6">Login or Register</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                            <input type="text" v-model="authDetails.username" placeholder="e.g. First name.Last name" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" v-model="authDetails.password" placeholder="••••••••" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="flex items-center justify-between space-x-4">
+                            <button @click="login" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Login</button>
+                            <button @click="register" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">Register</button>
+                        </div>
+                        <p v-if="authDetails.error" class="text-red-500 text-sm mt-2">{{ authDetails.error }}</p>
                     </div>
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" v-model="authDetails.password" placeholder="••••••••" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div class="flex items-center justify-between space-x-4">
-                        <button @click="login" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Login</button>
-                        <button @click="register" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">Register</button>
-                    </div>
-                    <p v-if="authDetails.error" class="text-red-500 text-sm mt-2">{{ authDetails.error }}</p>
                 </div>
             </div>
 
