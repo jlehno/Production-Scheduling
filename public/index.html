@@ -17,10 +17,17 @@
             background-color: white; padding: 2rem; border-radius: 0.5rem;
             width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+        .login-background {
+            background-image: url('https://storage.googleapis.com/gemini-prod-us-west1-159117565435-us-west1/uploaded_files/bbf4027f-f9fb-414a-8e3c-aa85d855b7d7.png');
+            background-color: #ffffff; /* White fallback */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
         [v-cloak] { display: none; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body :class="{'bg-gray-100': user, 'login-background': !user}" class="text-gray-800">
 
     <div id="app" v-cloak class="p-4 md:p-8 max-w-7xl mx-auto">
         
@@ -757,7 +764,7 @@
                 const closeEditModal = () => { isEditModalOpen.value = false; };
                 const saveEditedProduct = async () => {
                     const productDocRef = doc(productsCollection, editingProduct.value.id);
-                    await updateDoc(productDocRef, { name: editingProduct.value.name, tasks: editingProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
+                    await updateDoc(productDocRef, { name: editingProduct.value.name, tasks: newProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
                     closeEditModal();
                 };
                 const addEmployee = async () => {
