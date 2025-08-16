@@ -74,23 +74,35 @@
                             <div v-for="day in weekDates" :key="day" class="p-3 border-b">
                                 <h3 class="font-semibold text-lg">{{ formatDay(day, 'long') }}</h3>
                                 <div v-if="getEmployeeAvailability(day).length > 0" class="mt-2 space-y-2">
-                                    <div v-for="(slot, index) in getEmployeeAvailability(day)" :key="index" class="flex justify-between items-center p-2 bg-gray-100 rounded-md">
-                                        <span class="text-sm font-medium text-gray-800">{{ slot }}</span>
-                                        <div>
+                                    <div v-for="(slot, index) in getEmployeeAvailability(day)" :key="index" class="flex justify-between items-center p-2 rounded-md" :class="slot.confirmed ? 'bg-green-100' : 'bg-gray-100'">
+                                        <span class="text-sm font-medium" :class="slot.confirmed ? 'text-green-800' : 'text-gray-800'">{{ slot.time }}</span>
+                                        <div v-if="!slot.confirmed">
                                             <button @click="openEditSlotModal(day, slot)" class="text-xs text-blue-600 hover:text-blue-800 font-semibold mr-2">Edit</button>
                                             <button @click="removeEmployeeTimeSlot(day, slot)" class="text-xs text-red-600 hover:text-red-800 font-semibold">Delete</button>
                                         </div>
+                                        <div v-else class="flex items-center text-green-700 font-bold text-xs">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            Confirmed
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="mt-3 flex space-x-2">
-                                    <input v-model="newTimeSlots[day]" @keyup.enter="addEmployeeTimeSlot(day, newTimeSlots[day])" type="text" placeholder="e.g., 9am-5pm" class="p-2 border rounded-md w-full sm:w-auto" :disabled="!isEmployeeProfileReady">
-                                    <button @click="addEmployeeTimeSlot(day, newTimeSlots[day])" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-gray-400" :disabled="!isEmployeeProfileReady">Add Hours</button>
+                                <div class="mt-3 flex items-center space-x-2 flex-wrap">
+                                    <select v-model="newTimeSlots[day].start" class="p-2 border rounded-md">
+                                        <option disabled value="">Start Time</option>
+                                        <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+                                    </select>
+                                    <span class="text-gray-500">-</span>
+                                    <select v-model="newTimeSlots[day].end" class="p-2 border rounded-md">
+                                        <option disabled value="">End Time</option>
+                                        <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+                                    </select>
+                                    <button @click="addEmployeeTimeSlot(day)" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-gray-400" :disabled="!isEmployeeProfileReady">Add Hours</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-bold mb-4">My Scheduled Hours</h2>
+                        <h2 class="text-2xl font-bold mb-4">My Confirmed Hours</h2>
                         <p class="text-gray-500 mb-6">Displaying hours for week of {{ weekDates[0] ? new Date(weekDates[0] + 'T00:00:00').toLocaleDateString() : '' }}</p>
                          <div class="space-y-4">
                             <div v-for="day in weekDates" :key="day" class="p-3 border-b">
@@ -164,6 +176,7 @@
                             <div class="flex items-center space-x-4 mb-6">
                                 <label for="week-select" class="font-medium">Staff Availability:</label>
                                 <input type="week" v-model="selectedWeek" id="week-select" class="p-2 border rounded-md">
+                                <span class="text-sm font-semibold bg-green-100 text-green-800 px-3 py-1 rounded-full">Click Times once Confirmed</span>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200">
@@ -178,8 +191,11 @@
                                             <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ employee.name }}</td>
                                             <td v-for="day in weekDates" :key="day" class="px-6 py-4 whitespace-nowrap text-sm">
                                                 <div class="flex flex-col gap-1">
-                                                    <span v-for="(slot, index) in getEmployeeAvailabilityForAdmin(employee.id, day)" :key="index" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                                         {{ slot }}
+                                                    <span v-for="(slot, index) in getEmployeeAvailabilityForAdmin(employee.id, day)" :key="index" 
+                                                          @click="toggleConfirmation(employee.id, day, slot)"
+                                                          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer"
+                                                          :class="slot.confirmed ? 'bg-green-200 text-green-800' : 'bg-gray-100 text-gray-800'">
+                                                         {{ slot.time }}
                                                     </span>
                                                     <span v-if="!getEmployeeAvailabilityForAdmin(employee.id, day) || getEmployeeAvailabilityForAdmin(employee.id, day).length === 0" class="text-gray-400">No hours set</span>
                                                 </div>
@@ -291,9 +307,16 @@
         <div v-if="isEditSlotModalOpen" class="modal-backdrop">
             <div class="modal-content">
                 <h2 class="text-xl font-bold mb-4">Edit Time Slot</h2>
-                <div>
-                    <label class="block text-sm font-medium">Availability</label>
-                    <input v-model="editingSlot.newValue" class="w-full p-2 border rounded-md mt-1">
+                 <div class="flex items-center space-x-2">
+                     <select v-model="editingSlot.start" class="p-2 border rounded-md w-full">
+                        <option disabled value="">Start Time</option>
+                        <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+                    </select>
+                    <span class="text-gray-500">-</span>
+                    <select v-model="editingSlot.end" class="p-2 border rounded-md w-full">
+                        <option disabled value="">End Time</option>
+                        <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+                    </select>
                 </div>
                 <div class="mt-6 flex justify-end space-x-3">
                     <button @click="closeEditSlotModal" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
@@ -319,7 +342,7 @@
     </div>
 
     <script type="module">
-        import { createApp, ref, onMounted, computed, watch } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+        import { createApp, ref, onMounted, computed, watch, nextTick } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -359,7 +382,7 @@
                 const newTimeSlots = ref({});
                 const newConfirmedHours = ref({});
                 const isEditSlotModalOpen = ref(false);
-                const editingSlot = ref({ day: null, originalValue: '', newValue: '' });
+                const editingSlot = ref({ day: null, originalValue: '', start: '', end: '' });
                 const isEditConfirmedSlotModalOpen = ref(false);
                 const editingConfirmedSlot = ref({ employeeId: null, day: null, originalValue: '', newValue: '' });
                 const isEmployeeProfileReady = ref(false);
@@ -367,6 +390,19 @@
                 
                 let productsCollection, employeesCollection, schedulesCollection, availabilityCollection, confirmedHoursCollection;
                 let productsUnsubscribe, employeesUnsubscribe, scheduleUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe, todaysScheduleUnsubscribe;
+
+                const timeOptions = computed(() => {
+                    const options = [];
+                    for (let i = 0; i < 24; i++) {
+                        for (let j = 0; j < 60; j += 30) {
+                            const hour = i % 12 === 0 ? 12 : i % 12;
+                            const minute = j === 0 ? '00' : '30';
+                            const period = i < 12 ? 'AM' : 'PM';
+                            options.push(`${hour}:${minute} ${period}`);
+                        }
+                    }
+                    return options;
+                });
 
                 function getWeekId(d) {
                     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -392,7 +428,9 @@
                     return Array.from({ length: 7 }, (_, i) => {
                         const d = new Date(startDate);
                         d.setDate(d.getDate() + i);
-                        return d.toISOString().split('T')[0];
+                        const dateString = d.toISOString().split('T')[0];
+                        newTimeSlots.value[dateString] = { start: '', end: '' };
+                        return dateString;
                     });
                 });
 
@@ -517,28 +555,31 @@
                     });
                 };
 
-                const addEmployeeTimeSlot = async (day, timeSlot) => {
-                    if (!timeSlot || !timeSlot.trim()) return;
+                const addEmployeeTimeSlot = async (day) => {
+                    const { start, end } = newTimeSlots.value[day];
+                    if (!start || !end) return;
+                    
+                    const timeSlot = { time: `${start} - ${end}`, confirmed: false };
                     const employeeId = loggedInEmployeeId.value;
                     if (!employeeId) return;
 
                     const currentSlots = getEmployeeAvailability(day) || [];
-                    if (currentSlots.includes(timeSlot.trim())) return;
+                    if (currentSlots.find(s => s.time === timeSlot.time)) return;
 
-                    const updatedSlots = [...currentSlots, timeSlot.trim()];
+                    const updatedSlots = [...currentSlots, timeSlot];
                     
                     const weekDocId = selectedWeek.value.replace('-W', '');
                     const availabilityDocRef = doc(availabilityCollection, weekDocId);
                     await setDoc(availabilityDocRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
-                    newTimeSlots.value[day] = '';
+                    newTimeSlots.value[day] = { start: '', end: '' };
                 };
 
-                const removeEmployeeTimeSlot = async (day, timeSlot) => {
+                const removeEmployeeTimeSlot = async (day, slotToRemove) => {
                     const employeeId = loggedInEmployeeId.value;
                     if (!employeeId) return;
 
                     const currentSlots = getEmployeeAvailability(day) || [];
-                    const updatedSlots = currentSlots.filter(slot => slot !== timeSlot);
+                    const updatedSlots = currentSlots.filter(slot => slot.time !== slotToRemove.time);
 
                     const weekDocId = selectedWeek.value.replace('-W', '');
                     const availabilityDocRef = doc(availabilityCollection, weekDocId);
@@ -546,7 +587,8 @@
                 };
                 
                 const openEditSlotModal = (day, slot) => {
-                    editingSlot.value = { day, originalValue: slot, newValue: slot };
+                    const [start, end] = slot.time.split(' - ');
+                    editingSlot.value = { day, originalValue: slot.time, start, end };
                     isEditSlotModalOpen.value = true;
                 };
 
@@ -555,20 +597,39 @@
                 };
 
                 const saveEditedSlot = async () => {
-                    const { day, originalValue, newValue } = editingSlot.value;
-                    if (!newValue || !newValue.trim()) return;
+                    const { day, originalValue, start, end } = editingSlot.value;
+                    if (!start || !end) return;
 
+                    const newValue = `${start} - ${end}`;
                     const employeeId = loggedInEmployeeId.value;
                     if (!employeeId) return;
 
                     const currentSlots = getEmployeeAvailability(day) || [];
-                    const updatedSlots = currentSlots.map(s => (s === originalValue ? newValue.trim() : s));
+                    const updatedSlots = currentSlots.map(s => {
+                        if (s.time === originalValue) {
+                            return { ...s, time: newValue };
+                        }
+                        return s;
+                    });
 
                     const weekDocId = selectedWeek.value.replace('-W', '');
                     const availabilityDocRef = doc(availabilityCollection, weekDocId);
                     await setDoc(availabilityDocRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
 
                     closeEditSlotModal();
+                };
+                
+                const toggleConfirmation = async (employeeId, day, slotToToggle) => {
+                    const currentSlots = getEmployeeAvailabilityForAdmin(employeeId, day) || [];
+                    const updatedSlots = currentSlots.map(s => {
+                        if (s.time === slotToToggle.time) {
+                            return { ...s, confirmed: !s.confirmed };
+                        }
+                        return s;
+                    });
+                    const weekDocId = selectedWeek.value.replace('-W', '');
+                    const availabilityDocRef = doc(availabilityCollection, weekDocId);
+                    await setDoc(availabilityDocRef, { [employeeId]: { [day]: updatedSlots } }, { merge: true });
                 };
 
                 const addConfirmedTimeSlot = async (employeeId, day, timeSlot) => {
@@ -776,7 +837,9 @@
                     confirmedHoursData, newConfirmedHours, addConfirmedTimeSlot, removeConfirmedTimeSlot,
                     getConfirmedHoursForAdmin, isEditConfirmedSlotModalOpen, editingConfirmedSlot,
                     openEditConfirmedSlotModal, closeEditConfirmedSlotModal, saveEditedConfirmedSlot,
-                    getConfirmedHoursForEmployee
+                    getConfirmedHoursForEmployee,
+                    timeOptions,
+                    toggleConfirmation
                 };
             }
         }).mount('#app');
