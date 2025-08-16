@@ -28,17 +28,19 @@
 
         <template v-if="isAuthReady">
             <header class="mb-8 p-4 bg-white rounded-lg shadow-md">
-                <div class="flex justify-between items-center flex-wrap gap-4">
+                <div v-if="user" class="flex justify-between items-center flex-wrap gap-4">
                     <div>
-                        <h1 v-if="user" class="text-3xl font-bold text-indigo-600">Production Staffing</h1>
-                        <h1 v-else class="text-3xl font-bold text-indigo-600 text-center">Made4U Foods Production Staffing</h1>
-                        <p v-if="user" class="text-gray-500">Manage your daily production tasks and employee assignments.</p>
+                        <h1 class="text-3xl font-bold text-indigo-600">Production Staffing</h1>
+                        <p class="text-gray-500">Manage your daily production tasks and employee assignments.</p>
                     </div>
-                    <div v-if="user" class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-4">
                         <span class="text-sm font-medium hidden sm:inline">Welcome, {{ user.displayName }}</span>
                         <button v-if="isAdmin" @click="toggleView" class="px-4 py-2 text-sm font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600">Switch to {{ isEmployeeView ? 'Admin' : 'Employee' }} View</button>
                         <button @click="logout" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600">Logout</button>
                     </div>
+                </div>
+                 <div v-else class="text-center">
+                    <h1 class="text-3xl font-bold text-indigo-600">Made4U Foods Production Staffing</h1>
                 </div>
             </header>
 
