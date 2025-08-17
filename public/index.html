@@ -756,7 +756,7 @@
                 const closeEditModal = () => { isEditModalOpen.value = false; };
                 const saveEditedProduct = async () => {
                     const productDocRef = doc(productsCollection, editingProduct.value.id);
-                    await updateDoc(productDocRef, { name: editingProduct.value.name, tasks: newProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
+                    await updateDoc(productDocRef, { name: editingProduct.value.name, tasks: editingProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
                     closeEditModal();
                 };
                 const addEmployee = async () => {
