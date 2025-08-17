@@ -156,44 +156,97 @@
                 </div>
 
                 <!-- Admin View -->
-                <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1 space-y-8">
-                        <!-- Product & Employee Management -->
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-xl font-bold mb-4">Manage Products</h2>
-                            <div class="space-y-2 mb-4">
-                                <input v-model="newProduct.name" @keyup.enter="addProduct" class="w-full p-2 border rounded-md" placeholder="New product name">
-                                <textarea v-model="newProduct.tasks" class="w-full p-2 border rounded-md" placeholder="Tasks (one per line)"></textarea>
-                                <button @click="addProduct" class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add Product</button>
-                            </div>
-                            <div class="space-y-2">
-                                <div v-for="product in products" :key="product.id" class="p-3 border rounded-md bg-gray-50">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="font-semibold">{{ product.name }}</h3>
-                                        <div class="flex space-x-2">
-                                            <button @click="openEditModal(product)" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
-                                            <button @click="deleteProduct(product.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                <div v-else>
+                    <div class="mb-4 border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            <button @click="adminView = 'scheduling'" :class="{'border-indigo-500 text-indigo-600': adminView === 'scheduling', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'scheduling'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Scheduling</button>
+                            <button @click="adminView = 'staffing'" :class="{'border-indigo-500 text-indigo-600': adminView === 'staffing', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'staffing'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Staffing</button>
+                            <button @click="adminView = 'calendar'" :class="{'border-indigo-500 text-indigo-600': adminView === 'calendar', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'calendar'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Production Calendar</button>
+                        </nav>
+                    </div>
+
+                    <div v-if="adminView === 'scheduling'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 space-y-8">
+                            <!-- Product & Employee Management -->
+                            <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h2 class="text-xl font-bold mb-4">Manage Products</h2>
+                                <div class="space-y-2 mb-4">
+                                    <input v-model="newProduct.name" @keyup.enter="addProduct" class="w-full p-2 border rounded-md" placeholder="New product name">
+                                    <textarea v-model="newProduct.tasks" class="w-full p-2 border rounded-md" placeholder="Tasks (one per line)"></textarea>
+                                    <button @click="addProduct" class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add Product</button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div v-for="product in products" :key="product.id" class="p-3 border rounded-md bg-gray-50">
+                                        <div class="flex justify-between items-center">
+                                            <h3 class="font-semibold">{{ product.name }}</h3>
+                                            <div class="flex space-x-2">
+                                                <button @click="openEditModal(product)" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
+                                                <button @click="deleteProduct(product.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                            </div>
                                         </div>
+                                        <ul class="list-disc list-inside text-sm text-gray-600 mt-1"><li v-for="task in product.tasks" :key="task">{{ task }}</li></ul>
                                     </div>
-                                    <ul class="list-disc list-inside text-sm text-gray-600 mt-1"><li v-for="task in product.tasks" :key="task">{{ task }}</li></ul>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h2 class="text-xl font-bold mb-4">Manage Employees</h2>
+                                <div class="flex space-x-2 mb-4">
+                                    <input v-model="newEmployeeName" @keyup.enter="addEmployee" class="w-full p-2 border rounded-md" placeholder="New employee name">
+                                    <button @click="addEmployee" class="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add</button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div v-for="employee in employees" :key="employee.id" class="flex justify-between items-center p-2 border rounded-md bg-gray-50">
+                                        <span>{{ employee.name }}</span>
+                                        <button @click="deleteEmployee(employee.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-xl font-bold mb-4">Manage Employees</h2>
-                            <div class="flex space-x-2 mb-4">
-                                <input v-model="newEmployeeName" @keyup.enter="addEmployee" class="w-full p-2 border rounded-md" placeholder="New employee name">
-                                <button @click="addEmployee" class="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add</button>
-                            </div>
-                            <div class="space-y-2">
-                                <div v-for="employee in employees" :key="employee.id" class="flex justify-between items-center p-2 border rounded-md bg-gray-50">
-                                    <span>{{ employee.name }}</span>
-                                    <button @click="deleteEmployee(employee.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                        <div class="lg:col-span-2">
+                            <!-- Daily Production Plan -->
+                            <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h2 class="text-2xl font-bold mb-4">Daily Production Plan</h2>
+                                <div class="flex items-center space-x-4 mb-6">
+                                    <label for="production-date" class="font-medium">Date:</label>
+                                    <input type="date" v-model="scheduleDate" id="production-date" class="p-2 border rounded-md">
+                                </div>
+                                <div class="space-y-6">
+                                    <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
+                                        <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
+                                        <div class="mt-2">
+                                            <label class="block text-sm font-medium text-gray-700">Product:</label>
+                                            <select v-model="bay.productId" @change="updateProductTasks(bayIndex)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                                <option value="">Select a product</option>
+                                                <option v-for="product in products" :value="product.id">{{ product.name }}</option>
+                                            </select>
+                                        </div>
+                                        <div class="mt-4 space-y-4">
+                                            <div v-for="(task, taskIndex) in bay.tasks" :key="taskIndex" class="p-3 bg-white/60 rounded-md">
+                                                <h4 class="font-semibold">{{ task.name }}</h4>
+                                                <div class="mt-2">
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
+                                                    <div class="flex flex-wrap gap-2 items-center">
+                                                        <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                            {{ getEmployeeName(empId) }}
+                                                            <button @click="unassignEmployee(bayIndex, taskIndex, empId)" class="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-500"><svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg></button>
+                                                        </span>
+                                                        <select @change="assignEmployee($event, bayIndex, taskIndex)" class="mt-1 block w-auto p-1 border border-gray-300 rounded-md shadow-sm text-xs">
+                                                            <option value="">+ Assign...</option>
+                                                            <option v-for="employee in unassignedEmployees(task)" :value="employee.id">
+                                                                {{ isEmployeeAvailable(employee.id, scheduleDate) ? '🟢' : '🔴' }} {{ employee.name }}
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 space-y-8">
+
+                    <div v-if="adminView === 'staffing'" class="space-y-8">
                         <!-- Staff Availability -->
                         <div class="bg-white p-6 rounded-lg shadow-md">
                             <div class="flex items-center space-x-4 mb-6">
@@ -261,47 +314,33 @@
                                 </table>
                             </div>
                         </div>
-                        <!-- Daily Production Plan -->
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-2xl font-bold mb-4">Daily Production Plan</h2>
-                            <div class="flex items-center space-x-4 mb-6">
-                                <label for="production-date" class="font-medium">Date:</label>
-                                <input type="date" v-model="scheduleDate" id="production-date" class="p-2 border rounded-md">
-                            </div>
-                            <div class="space-y-6">
-                                <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
-                                    <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
-                                    <div class="mt-2">
-                                        <label class="block text-sm font-medium text-gray-700">Product:</label>
-                                        <select v-model="bay.productId" @change="updateProductTasks(bayIndex)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                                            <option value="">Select a product</option>
+                    </div>
+                    
+                    <div v-if="adminView === 'calendar'" class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <button @click="previousMonth" class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">&lt; Prev</button>
+                            <h2 class="text-2xl font-bold">{{ calendar.monthName }} {{ calendar.year }}</h2>
+                            <button @click="nextMonth" class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">Next &gt;</button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center font-bold">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 mt-2">
+                            <div v-for="day in calendar.days" :key="day.date" class="border rounded-md p-1 h-48" :class="{'bg-gray-50': !day.isCurrentMonth}">
+                                <div class="font-bold" :class="{'text-gray-400': !day.isCurrentMonth}">{{ day.dayOfMonth }}</div>
+                                <div v-if="day.isCurrentMonth" class="space-y-1 mt-1">
+                                    <div v-for="bay in day.bays" :key="bay.name" class="p-1 rounded-md text-xs" :class="bay.bgColorClass">
+                                        <select v-model="bay.productId" @change="saveCalendarData" class="w-full text-xs border-gray-300 rounded-md shadow-sm">
+                                            <option value="">{{ bay.name }}</option>
                                             <option v-for="product in products" :value="product.id">{{ product.name }}</option>
                                         </select>
-                                    </div>
-                                    <div class="mt-4 space-y-4">
-                                        <div v-for="(task, taskIndex) in bay.tasks" :key="taskIndex" class="p-3 bg-white/60 rounded-md">
-                                            <h4 class="font-semibold">{{ task.name }}</h4>
-                                            <div class="mt-2">
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
-                                                <div class="flex flex-wrap gap-2 items-center">
-                                                    <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                        {{ getEmployeeName(empId) }}
-                                                        <button @click="unassignEmployee(bayIndex, taskIndex, empId)" class="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-500"><svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg></button>
-                                                    </span>
-                                                    <select @change="assignEmployee($event, bayIndex, taskIndex)" class="mt-1 block w-auto p-1 border border-gray-300 rounded-md shadow-sm text-xs">
-                                                        <option value="">+ Assign...</option>
-                                                        <option v-for="employee in unassignedEmployees(task)" :value="employee.id">
-                                                            {{ isEmployeeAvailable(employee.id, scheduleDate) ? '🟢' : '🔴' }} {{ employee.name }}
-                                                        </option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <input type="number" v-model="bay.batches" @change="saveCalendarData" class="w-full text-xs border-gray-300 rounded-md shadow-sm mt-1" placeholder="Batches">
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </main>
         </template>
@@ -411,6 +450,7 @@
                 const editingConfirmedSlot = ref({ employeeId: null, day: null, originalValue: '', newValue: '' });
                 const isEmployeeProfileReady = ref(false);
                 const loggedInEmployeeId = ref(null);
+                const adminView = ref('scheduling'); // 'scheduling', 'staffing', 'calendar'
                 
                 let productsCollection, employeesCollection, schedulesCollection, availabilityCollection, confirmedHoursCollection;
                 let productsUnsubscribe, employeesUnsubscribe, scheduleUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe, todaysScheduleUnsubscribe, tomorrowsScheduleUnsubscribe;
@@ -906,7 +946,8 @@
                     openEditConfirmedSlotModal, closeEditConfirmedSlotModal, saveEditedConfirmedSlot,
                     getConfirmedHoursForEmployee,
                     timeOptions,
-                    toggleConfirmation
+                    toggleConfirmation,
+                    adminView
                 };
             }
         }).mount('#app');
