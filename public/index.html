@@ -176,18 +176,18 @@
                             <div class="space-y-6">
                                 <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
                                     <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
-                                    <div class="mt-2">
-                                        <p class="text-sm font-medium text-gray-700">Product: <span class="font-normal">{{ getProductName(bay.productId) }}</span></p>
-                                    </div>
-                                    <div class="mt-4 space-y-4">
-                                        <div v-for="(task, taskIndex) in bay.tasks" :key="taskIndex" class="p-3 bg-white/60 rounded-md">
-                                            <h4 class="font-semibold">{{ task.name }}</h4>
-                                            <div class="mt-2">
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
-                                                <div class="flex flex-wrap gap-2 items-center">
-                                                    <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                        {{ getEmployeeName(empId) }}
-                                                    </span>
+                                    <div v-for="(product, productIndex) in bay.products" :key="productIndex" class="mt-2">
+                                        <p class="text-sm font-medium text-gray-700">Product: <span class="font-normal">{{ getProductName(product.productId) }}</span></p>
+                                        <div class="mt-4 space-y-4">
+                                            <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" v-if="task.assignedEmployeeIds.length > 0" class="p-3 bg-white/60 rounded-md">
+                                                <h4 class="font-semibold">{{ task.name }}</h4>
+                                                <div class="mt-2">
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
+                                                    <div class="flex flex-wrap gap-2 items-center">
+                                                        <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                            {{ getEmployeeName(empId) }}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -246,33 +246,34 @@
                                 <div class="space-y-6">
                                     <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
                                         <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
-                                        <div class="mt-2">
+                                        <div v-for="(product, productIndex) in bay.products" :key="productIndex" class="mt-2 border-t pt-2">
                                             <label class="block text-sm font-medium text-gray-700">Product:</label>
-                                            <select v-model="bay.productId" @change="updateProductTasks(bayIndex)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                                                <option value="">Select a product</option>
-                                                <option v-for="product in products" :value="product.id">{{ product.name }}</option>
+                                            <select v-model="product.productId" @change="updateProductTasks(bayIndex, productIndex)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                                <option value="">Select a Product and Assign Employees to its Tasks</option>
+                                                <option v-for="p in products" :value="p.id">{{ p.name }}</option>
                                             </select>
-                                        </div>
-                                        <div class="mt-4 space-y-4">
-                                            <div v-for="(task, taskIndex) in bay.tasks" :key="taskIndex" class="p-3 bg-white/60 rounded-md">
-                                                <h4 class="font-semibold">{{ task.name }}</h4>
-                                                <div class="mt-2">
-                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
-                                                    <div class="flex flex-wrap gap-2 items-center">
-                                                        <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                            {{ getEmployeeName(empId) }}
-                                                            <button @click="unassignEmployee(bayIndex, taskIndex, empId)" class="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-500"><svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg></button>
-                                                        </span>
-                                                        <select @change="assignEmployee($event, bayIndex, taskIndex)" class="mt-1 block w-auto p-1 border border-gray-300 rounded-md shadow-sm text-xs">
-                                                            <option value="">+ Assign...</option>
-                                                            <option v-for="employee in unassignedEmployees(task)" :value="employee.id">
-                                                                {{ isEmployeeAvailable(employee.id, scheduleDate) ? '🟢' : '🔴' }} {{ employee.name }}
-                                                            </option>
-                                                        </select>
+                                            <div class="mt-4 space-y-4">
+                                                <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" class="p-3 bg-white/60 rounded-md">
+                                                    <h4 class="font-semibold">{{ task.name }}</h4>
+                                                    <div class="mt-2">
+                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
+                                                        <div class="flex flex-wrap gap-2 items-center">
+                                                            <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                                {{ getEmployeeName(empId) }}
+                                                                <button @click="unassignEmployee(bayIndex, productIndex, taskIndex, empId)" class="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-500"><svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg></button>
+                                                            </span>
+                                                            <select @change="assignEmployee($event, bayIndex, productIndex, taskIndex)" class="mt-1 block w-auto p-1 border border-gray-300 rounded-md shadow-sm text-xs">
+                                                                <option value="">+ Assign...</option>
+                                                                <option v-for="employee in unassignedEmployees(task)" :value="employee.id">
+                                                                    {{ isEmployeeAvailable(employee.id, scheduleDate) ? '🟢' : '🔴' }} {{ employee.name }}
+                                                                </option>
+                                                            </select>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        <button @click="addProductToBay(bayIndex)" class="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600">Add Product</button>
                                     </div>
                                 </div>
                             </div>
@@ -864,25 +865,34 @@
                     const scheduleDocRef = doc(schedulesCollection, scheduleDate.value);
                     scheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
                         if (docSnap.exists() && Array.isArray(docSnap.data().bays)) {
-                            schedule.value = docSnap.data().bays;
+                            let bays = docSnap.data().bays;
+                            if (bays.length > 0 && bays[0].productId !== undefined) {
+                                bays = bays.map(bay => ({
+                                    ...bay,
+                                    products: [{ productId: bay.productId, tasks: bay.tasks }],
+                                    productId: undefined, 
+                                    tasks: undefined
+                                }));
+                            }
+                            schedule.value = bays;
                         } else {
                             schedule.value = [
-                                { id: 1, name: 'Green Bay', bgColorClass: 'bg-green-100', textColorClass: 'text-green-800', productId: '', tasks: [] },
-                                { id: 2, name: 'Blue Bay', bgColorClass: 'bg-blue-100', textColorClass: 'text-blue-800', productId: '', tasks: [] },
-                                { id: 3, name: 'Orange Bay', bgColorClass: 'bg-orange-100', textColorClass: 'text-orange-800', productId: '', tasks: [] },
-                                { id: 4, name: 'Purple Bay', bgColorClass: 'bg-purple-100', textColorClass: 'text-purple-800', productId: '', tasks: [] }
+                                { id: 1, name: 'Green Bay', bgColorClass: 'bg-green-100', textColorClass: 'text-green-800', products: [{ productId: '', tasks: [] }] },
+                                { id: 2, name: 'Blue Bay', bgColorClass: 'bg-blue-100', textColorClass: 'text-blue-800', products: [{ productId: '', tasks: [] }] },
+                                { id: 3, name: 'Orange Bay', bgColorClass: 'bg-orange-100', textColorClass: 'text-orange-800', products: [{ productId: '', tasks: [] }] },
+                                { id: 4, name: 'Purple Bay', bgColorClass: 'bg-purple-100', textColorClass: 'text-purple-800', products: [{ productId: '', tasks: [] }] }
                             ];
                         }
                     });
                 };
 
-                const updateProductTasks = (bayIndex) => {
-                    const bay = schedule.value[bayIndex];
-                    const selectedProduct = products.value.find(p => p.id === bay.productId);
+                const updateProductTasks = (bayIndex, productIndex) => {
+                    const productSelection = schedule.value[bayIndex].products[productIndex];
+                    const selectedProduct = products.value.find(p => p.id === productSelection.productId);
                     if (selectedProduct) {
-                        bay.tasks = selectedProduct.tasks.map(name => ({ name, assignedEmployeeIds: [] }));
+                        productSelection.tasks = selectedProduct.tasks.map(name => ({ name, assignedEmployeeIds: [] }));
                     } else {
-                        bay.tasks = [];
+                        productSelection.tasks = [];
                     }
                     saveSchedule();
                 };
@@ -894,9 +904,9 @@
                     });
                 };
 
-                const assignEmployee = (event, bayIndex, taskIndex) => {
+                const assignEmployee = (event, bayIndex, productIndex, taskIndex) => {
                     const employeeId = event.target.value;
-                    const task = schedule.value[bayIndex].tasks[taskIndex];
+                    const task = schedule.value[bayIndex].products[productIndex].tasks[taskIndex];
                     if (employeeId && !task.assignedEmployeeIds.includes(employeeId)) {
                         task.assignedEmployeeIds.push(employeeId);
                         saveSchedule();
@@ -904,8 +914,8 @@
                     event.target.value = '';
                 };
 
-                const unassignEmployee = (bayIndex, taskIndex, employeeId) => {
-                    const task = schedule.value[bayIndex].tasks[taskIndex];
+                const unassignEmployee = (bayIndex, productIndex, taskIndex, employeeId) => {
+                    const task = schedule.value[bayIndex].products[productIndex].tasks[taskIndex];
                     task.assignedEmployeeIds = task.assignedEmployeeIds.filter(id => id !== employeeId);
                     saveSchedule();
                 };
@@ -923,17 +933,19 @@
                     
                     const tasks = [];
                     employeeTodaysScheduleData.value.forEach(bay => {
-                        const productName = products.value.find(p => p.id === bay.productId)?.name || 'Unknown Product';
-                        bay.tasks.forEach(task => {
-                            if (task.assignedEmployeeIds.includes(employeeId)) {
-                                tasks.push({ 
-                                    id: `${bay.id}-${task.name}`, 
-                                    productName, 
-                                    taskName: task.name,
-                                    bayName: bay.name,
-                                    bayColorClass: `${bay.bgColorClass.replace('-100', '-200')} ${bay.textColorClass.replace('-800', '-900')}`
-                                });
-                            }
+                        bay.products.forEach(product => {
+                            const productName = products.value.find(p => p.id === product.productId)?.name || 'Unknown Product';
+                            product.tasks.forEach(task => {
+                                if (task.assignedEmployeeIds.includes(employeeId)) {
+                                    tasks.push({ 
+                                        id: `${bay.id}-${task.name}`, 
+                                        productName, 
+                                        taskName: task.name,
+                                        bayName: bay.name,
+                                        bayColorClass: `${bay.bgColorClass.replace('-100', '-200')} ${bay.textColorClass.replace('-800', '-900')}`
+                                    });
+                                }
+                            });
                         });
                     });
                     return tasks;
@@ -946,17 +958,19 @@
                     
                     const tasks = [];
                     employeeTomorrowsScheduleData.value.forEach(bay => {
-                        const productName = products.value.find(p => p.id === bay.productId)?.name || 'Unknown Product';
-                        bay.tasks.forEach(task => {
-                            if (task.assignedEmployeeIds.includes(employeeId)) {
-                                tasks.push({ 
-                                    id: `${bay.id}-${task.name}-tomorrow`, 
-                                    productName, 
-                                    taskName: task.name,
-                                    bayName: bay.name,
-                                    bayColorClass: `${bay.bgColorClass.replace('-100', '-200')} ${bay.textColorClass.replace('-800', '-900')}`
-                                });
-                            }
+                        bay.products.forEach(product => {
+                            const productName = products.value.find(p => p.id === product.productId)?.name || 'Unknown Product';
+                            product.tasks.forEach(task => {
+                                if (task.assignedEmployeeIds.includes(employeeId)) {
+                                    tasks.push({ 
+                                        id: `${bay.id}-${task.name}-tomorrow`, 
+                                        productName, 
+                                        taskName: task.name,
+                                        bayName: bay.name,
+                                        bayColorClass: `${bay.bgColorClass.replace('-100', '-200')} ${bay.textColorClass.replace('-800', '-900')}`
+                                    });
+                                }
+                            });
                         });
                     });
                     return tasks;
@@ -1056,7 +1070,8 @@
                     calendar,
                     previousMonth,
                     nextMonth,
-                    saveCalendarData
+                    saveCalendarData,
+                    addProductToBay
                 };
             }
         }).mount('#app');
