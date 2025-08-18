@@ -213,24 +213,12 @@
                                         <div class="flex justify-between items-center">
                                             <h3 class="font-semibold">{{ product.name }}</h3>
                                             <div class="flex space-x-2">
+                                                <button @click="toggleProductTasks(product.id)" class="text-gray-500 hover:text-gray-700 text-sm">{{ product.showTasks ? 'Hide' : 'Show' }} Tasks</button>
                                                 <button @click="openEditModal(product)" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
                                                 <button @click="deleteProduct(product.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
                                             </div>
                                         </div>
-                                        <ul class="list-disc list-inside text-sm text-gray-600 mt-1"><li v-for="task in product.tasks" :key="task">{{ task }}</li></ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-white p-6 rounded-lg shadow-md">
-                                <h2 class="text-xl font-bold mb-4">Manage Employees</h2>
-                                <div class="flex space-x-2 mb-4">
-                                    <input v-model="newEmployeeName" @keyup.enter="addEmployee" class="w-full p-2 border rounded-md" placeholder="New employee name">
-                                    <button @click="addEmployee" class="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add</button>
-                                </div>
-                                <div class="space-y-2">
-                                    <div v-for="employee in employees" :key="employee.id" class="flex justify-between items-center p-2 border rounded-md bg-gray-50">
-                                        <span>{{ employee.name }}</span>
-                                        <button @click="deleteEmployee(employee.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                        <ul v-if="product.showTasks" class="list-disc list-inside text-sm text-gray-600 mt-1"><li v-for="task in product.tasks" :key="task">{{ task }}</li></ul>
                                     </div>
                                 </div>
                             </div>
@@ -351,6 +339,19 @@
                                 </table>
                             </div>
                         </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h2 class="text-xl font-bold mb-4">Manage Employees</h2>
+                                <div class="flex space-x-2 mb-4">
+                                    <input v-model="newEmployeeName" @keyup.enter="addEmployee" class="w-full p-2 border rounded-md" placeholder="New employee name">
+                                    <button @click="addEmployee" class="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add</button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div v-for="employee in employees" :key="employee.id" class="flex justify-between items-center p-2 border rounded-md bg-gray-50">
+                                        <span>{{ employee.name }}</span>
+                                        <button @click="deleteEmployee(employee.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
                     </div>
                     
                     <div v-if="adminView === 'calendar'" class="bg-white p-6 rounded-lg shadow-md">
@@ -601,7 +602,7 @@
                     confirmedHoursCollection = collection(db, 'confirmed_hours');
                     calendarCollection = collection(db, 'calendar');
                     
-                    productsUnsubscribe = onSnapshot(query(productsCollection), snap => products.value = snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    productsUnsubscribe = onSnapshot(query(productsCollection), snap => products.value = snap.docs.map(d => ({ id: d.id, ...d.data(), showTasks: false })));
                     
                     employeesUnsubscribe = onSnapshot(query(employeesCollection), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1052,6 +1053,18 @@
                     saveSchedule();
                 };
 
+                const removeProductFromBay = (bayIndex, productIndex) => {
+                    schedule.value[bayIndex].products.splice(productIndex, 1);
+                    saveSchedule();
+                };
+
+                const toggleProductTasks = (productId) => {
+                    const product = products.value.find(p => p.id === productId);
+                    if (product) {
+                        product.showTasks = !product.showTasks;
+                    }
+                };
+
 
                 return {
                     user, isAuthReady, authDetails, register, login, logout,
@@ -1080,7 +1093,9 @@
                     previousMonth,
                     nextMonth,
                     saveCalendarData,
-                    addProductToBay
+                    addProductToBay,
+                    removeProductFromBay,
+                    toggleProductTasks
                 };
             }
         }).mount('#app');
