@@ -1033,15 +1033,21 @@
                     await setDoc(docRef, dataToSave, { merge: true });
                 };
 
-                watch(currentDate, () => {
-                    if(adminView.value !== 'calendar') return;
-                    if (calendarUnsubscribe) calendarUnsubscribe();
-                    const monthId = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}`;
-                    const docRef = doc(calendarCollection, monthId);
-                    calendarUnsubscribe = onSnapshot(docRef, (docSnap) => {
-                        calendarData.value = docSnap.exists() ? docSnap.data() : {};
-                    });
-                }, { immediate: true });
+                watch(adminView, (newView) => {
+                    if (newView === 'calendar') {
+                        if (calendarUnsubscribe) calendarUnsubscribe();
+                        const monthId = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}`;
+                        const docRef = doc(calendarCollection, monthId);
+                        calendarUnsubscribe = onSnapshot(docRef, (docSnap) => {
+                            calendarData.value = docSnap.exists() ? docSnap.data() : {};
+                        });
+                    }
+                });
+                
+                const addProductToBay = (bayIndex) => {
+                    schedule.value[bayIndex].products.push({ productId: '', tasks: [] });
+                    saveSchedule();
+                };
 
 
                 return {
