@@ -544,7 +544,7 @@
                     onAuthStateChanged(auth, (currentUser) => {
                         user.value = currentUser;
                         if (currentUser) {
-                            const adminNames = ['joshua.lehn', 'tammy.lehn'];
+                            const adminNames = ['joshua.lehn', 'tammy.lehn', 'chris.lehn', 'jesse.lehn', 'adeline.lehn'];
                             isAdmin.value = adminNames.includes(currentUser.displayName?.toLowerCase());
                             isEmployeeView.value = !isAdmin.value;
                             initializeFirestoreListeners();
