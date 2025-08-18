@@ -247,7 +247,10 @@
                                     <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
                                         <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
                                         <div v-for="(product, productIndex) in bay.products" :key="productIndex" class="mt-2 border-t pt-2">
-                                            <label class="block text-sm font-medium text-gray-700">Product:</label>
+                                            <div class="flex justify-between items-center">
+                                                <label class="block text-sm font-medium text-gray-700">Product:</label>
+                                                <button @click="removeProductFromBay(bayIndex, productIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold">X</button>
+                                            </div>
                                             <select v-model="product.productId" @change="updateProductTasks(bayIndex, productIndex)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
                                                 <option value="">Select a Product and Assign Employees to its Tasks</option>
                                                 <option v-for="p in products" :value="p.id">{{ p.name }}</option>
