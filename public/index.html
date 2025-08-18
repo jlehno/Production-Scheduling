@@ -620,6 +620,7 @@
                     loadTomorrowsScheduleForEmployee();
                     
                     watch(currentDate, () => {
+                        if(adminView.value !== 'calendar') return;
                         if (calendarUnsubscribe) calendarUnsubscribe();
                         const monthId = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}`;
                         const docRef = doc(calendarCollection, monthId);
