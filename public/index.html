@@ -179,16 +179,13 @@
                                     <div v-for="(product, productIndex) in bay.products" :key="productIndex" class="mt-2">
                                         <p class="text-sm font-medium text-gray-700">Product: <span class="font-normal">{{ getProductName(product.productId) }}</span></p>
                                         <div class="mt-4 space-y-4">
-                                            <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" v-if="task.show" class="p-3 bg-white/60 rounded-md">
+                                            <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" v-if="task.assignedEmployeeIds && task.assignedEmployeeIds.length > 0" class="p-3 bg-white/60 rounded-md">
                                                 <h4 class="font-semibold">{{ task.name }}</h4>
                                                 <div class="mt-2">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
                                                     <div class="flex flex-wrap gap-2 items-center">
                                                         <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                                             {{ getEmployeeName(empId) }}
-                                                        </span>
-                                                         <span v-if="!task.assignedEmployeeIds || task.assignedEmployeeIds.length === 0" class="text-xs text-gray-400">
-                                                            No one assigned
                                                         </span>
                                                     </div>
                                                 </div>
@@ -246,15 +243,9 @@
                                                 <option value="">Select a Product and Assign Employees to its Tasks</option>
                                                 <option v-for="p in products" :value="p.id">{{ p.name }}</option>
                                             </select>
-                                            <div class="mt-2">
-                                                 <button @click="restoreHiddenTasks(bayIndex, productIndex)" class="text-xs text-blue-600 hover:text-blue-800 font-semibold">Restore Hidden Tasks</button>
-                                            </div>
                                             <div class="mt-4 space-y-4">
-                                                <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" v-if="task.show" class="p-3 bg-white/60 rounded-md">
-                                                    <div class="flex justify-between items-center">
-                                                        <h4 class="font-semibold">{{ task.name }}</h4>
-                                                        <button @click="toggleTaskVisibility(bayIndex, productIndex, taskIndex)" class="text-gray-500 hover:text-gray-700 text-sm">Hide</button>
-                                                    </div>
+                                                <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" class="p-3 bg-white/60 rounded-md">
+                                                    <h4 class="font-semibold">{{ task.name }}</h4>
                                                     <div class="mt-2">
                                                         <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
                                                         <div class="flex flex-wrap gap-2 items-center">
@@ -497,7 +488,7 @@
                 const editingConfirmedSlot = ref({ employeeId: null, day: null, originalValue: '', newValue: '' });
                 const isEmployeeProfileReady = ref(false);
                 const loggedInEmployeeId = ref(null);
-                const adminView = ref('scheduling'); // 'scheduling', 'staffing', 'calendar'
+                const adminView = ref('plan'); // 'plan', 'scheduling', 'staffing', 'calendar'
                 const currentDate = ref(new Date());
                 
                 let productsCollection, employeesCollection, schedulesCollection, availabilityCollection, confirmedHoursCollection, calendarCollection;
@@ -883,7 +874,7 @@
                             if (bays.length > 0 && bays[0].productId !== undefined) {
                                 bays = bays.map(bay => ({
                                     ...bay,
-                                    products: [{ productId: bay.productId, tasks: bay.tasks.map(task => ({...task, show: true})) }],
+                                    products: [{ productId: bay.productId, tasks: bay.tasks }],
                                     productId: undefined, 
                                     tasks: undefined
                                 }));
@@ -904,7 +895,7 @@
                     const productSelection = schedule.value[bayIndex].products[productIndex];
                     const selectedProduct = products.value.find(p => p.id === productSelection.productId);
                     if (selectedProduct) {
-                        productSelection.tasks = selectedProduct.tasks.map(name => ({ name, assignedEmployeeIds: [], show: true }));
+                        productSelection.tasks = selectedProduct.tasks.map(name => ({ name, assignedEmployeeIds: [] }));
                     } else {
                         productSelection.tasks = [];
                     }
@@ -1075,18 +1066,6 @@
                     }
                 };
 
-                const toggleTaskVisibility = (bayIndex, productIndex, taskIndex) => {
-                    const task = schedule.value[bayIndex].products[productIndex].tasks[taskIndex];
-                    task.show = !task.show;
-                    saveSchedule();
-                };
-                
-                const restoreHiddenTasks = (bayIndex, productIndex) => {
-                    const product = schedule.value[bayIndex].products[productIndex];
-                    product.tasks.forEach(task => task.show = true);
-                    saveSchedule();
-                };
-
 
                 return {
                     user, isAuthReady, authDetails, register, login, logout,
@@ -1117,9 +1096,7 @@
                     saveCalendarData,
                     addProductToBay,
                     removeProductFromBay,
-                    toggleProductTasks,
-                    toggleTaskVisibility,
-                    restoreHiddenTasks
+                    toggleProductTasks
                 };
             }
         }).mount('#app');
