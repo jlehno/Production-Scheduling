@@ -31,7 +31,7 @@
                 <div v-if="user" class="flex justify-between items-center flex-wrap gap-4">
                     <div>
                         <h1 class="text-3xl font-bold text-indigo-600">Production Staffing</h1>
-                        <p class="text-gray-500">Manage your daily production tasks and employee assignments.</p>
+                        <p class="text-gray-500">Manage your daily availability and view confirmed hours.</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <span class="text-sm font-medium hidden sm:inline">Welcome, {{ user.displayName }}</span>
@@ -121,161 +121,10 @@
                             </div>
                         </div>
                     </div>
-                     <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-bold mb-2">My Assigned Tasks</h2>
-                        <p class="text-sm text-gray-500 mb-6">Tasks assigned below are a general guideline. They are subject to change during production based on current needs.</p>
-                        <div class="space-y-6">
-                            <div>
-                                <h3 class="font-semibold text-lg mb-2">Today's Tasks ({{ new Date().toLocaleDateString() }})</h3>
-                                <div v-if="employeeTodaysTasks.length > 0" class="space-y-4">
-                                    <div v-for="task in employeeTodaysTasks" :key="task.id" class="p-4 border rounded-lg bg-gray-50">
-                                        <p class="font-semibold text-lg text-indigo-700">{{ task.productName }} <span :class="task.bayColorClass" class="text-xs font-bold px-2 py-1 rounded-full ml-2">{{ task.bayName }}</span></p>
-                                        <p class="text-gray-600">Task: <span class="font-medium">{{ task.taskName }}</span></p>
-                                    </div>
-                                </div>
-                                <div v-else>
-                                    <p class="text-gray-500">You have no tasks assigned for today.</p>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-lg mb-2">Tomorrow's Tasks ({{ new Date(new Date().setDate(new Date().getDate() + 1)).toLocaleDateString() }})</h3>
-                                <div v-if="employeeTomorrowsTasks.length > 0" class="space-y-4">
-                                    <div v-for="task in employeeTomorrowsTasks" :key="task.id" class="p-4 border rounded-lg bg-gray-50">
-                                        <p class="font-semibold text-lg text-indigo-700">{{ task.productName }} <span :class="task.bayColorClass" class="text-xs font-bold px-2 py-1 rounded-full ml-2">{{ task.bayName }}</span></p>
-                                        <p class="text-gray-600">Task: <span class="font-medium">{{ task.taskName }}</span></p>
-                                    </div>
-                                </div>
-                                <div v-else>
-                                    <p class="text-gray-500">You have no tasks assigned for tomorrow.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div v-else>
-                    <div class="mb-4 border-b border-gray-200">
-                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                            <button @click="adminView = 'plan'" :class="{'border-indigo-500 text-indigo-600': adminView === 'plan', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'plan'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Daily Production Plan</button>
-                            <button @click="adminView = 'scheduling'" :class="{'border-indigo-500 text-indigo-600': adminView === 'scheduling', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'scheduling'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Scheduling</button>
-                            <button @click="adminView = 'staffing'" :class="{'border-indigo-500 text-indigo-600': adminView === 'staffing', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'staffing'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Staffing</button>
-                            <button @click="adminView = 'calendar'" :class="{'border-indigo-500 text-indigo-600': adminView === 'calendar', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': adminView !== 'calendar'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Production Calendar</button>
-                        </nav>
-                    </div>
-                    
-                    <div v-if="adminView === 'plan'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div class="lg:col-span-1 space-y-8">
-                            <div class="bg-white p-6 rounded-lg shadow-md">
-                                <h2 class="text-xl font-bold mb-4">Manage Products</h2>
-                                <div class="space-y-2 mb-4">
-                                    <input v-model="newProduct.name" @keyup.enter="addProduct" class="w-full p-2 border rounded-md" placeholder="New product name">
-                                    <textarea v-model="newProduct.tasks" class="w-full p-2 border rounded-md" placeholder="Tasks (one per line)"></textarea>
-                                    <button @click="addProduct" class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Add Product</button>
-                                </div>
-                                <div class="space-y-2">
-                                    <div v-for="product in products" :key="product.id" class="p-3 border rounded-md bg-gray-50">
-                                        <div class="flex justify-between items-center">
-                                            <h3 class="font-semibold">{{ product.name }}</h3>
-                                            <div class="flex space-x-2">
-                                                <button @click="toggleProductTasks(product.id)" class="text-gray-500 hover:text-gray-700 text-sm">{{ product.showTasks ? 'Hide' : 'Show' }} Tasks</button>
-                                                <button @click="openEditModal(product)" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
-                                                <button @click="deleteProduct(product.id)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
-                                            </div>
-                                        </div>
-                                        <ul v-if="product.showTasks" class="list-disc list-inside text-sm text-gray-600 mt-1"><li v-for="task in product.tasks" :key="task">{{ task }}</li></ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="lg:col-span-2">
-                            <div class="bg-white p-6 rounded-lg shadow-md">
-                                <h2 class="text-2xl font-bold mb-4">Adjust Daily Production Plan</h2>
-                                <div class="flex items-center space-x-4 mb-6">
-                                    <label for="production-date" class="font-medium">Date:</label>
-                                    <input type="date" v-model="scheduleDate" id="production-date" class="p-2 border rounded-md">
-                                </div>
-                                <div class="space-y-6">
-                                    <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
-                                        <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
-                                        <div v-for="(product, productIndex) in bay.products" :key="productIndex" class="mt-2 border-t pt-2">
-                                            <div class="flex justify-between items-center">
-                                                <label class="block text-sm font-medium text-gray-700">Product:</label>
-                                                <button @click="removeProductFromBay(bayIndex, productIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold">X</button>
-                                            </div>
-                                            <select v-model="product.productId" @change="updateProductTasks(bayIndex, productIndex)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                                                <option value="">Select a Product and Assign Employees to its Tasks</option>
-                                                <option v-for="p in products" :value="p.id">{{ p.name }}</option>
-                                            </select>
-                                            <div class="mt-2">
-                                                 <button @click="restoreHiddenTasks(bayIndex, productIndex)" class="text-xs text-blue-600 hover:text-blue-800 font-semibold">Restore Hidden Tasks</button>
-                                            </div>
-                                            <div class="mt-4 space-y-4">
-                                                <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" v-if="task.show" class="p-3 bg-white/60 rounded-md">
-                                                    <div class="flex justify-between items-center">
-                                                        <h4 class="font-semibold">{{ task.name }}</h4>
-                                                        <button @click="toggleTaskVisibility(bayIndex, productIndex, taskIndex)" class="text-gray-500 hover:text-gray-700 text-sm">Hide</button>
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
-                                                        <div class="flex flex-wrap gap-2 items-center">
-                                                            <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                                {{ getEmployeeName(empId) }}
-                                                                <button @click="unassignEmployee(bayIndex, productIndex, taskIndex, empId)" class="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-500"><svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg></button>
-                                                            </span>
-                                                            <select @change="assignEmployee($event, bayIndex, productIndex, taskIndex)" class="mt-1 block w-auto p-1 border border-gray-300 rounded-md shadow-sm text-xs">
-                                                                <option value="">+ Assign...</option>
-                                                                <option v-for="employee in unassignedEmployees(task)" :value="employee.id">
-                                                                    {{ isEmployeeAvailable(employee.id, scheduleDate) ? '🟢' : '🔴' }} {{ employee.name }}
-                                                                </option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button @click="addProductToBay(bayIndex)" class="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600">Add Product</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div v-if="adminView === 'scheduling'">
-                         <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-2xl font-bold mb-4">Daily Production Plan</h2>
-                            <div class="flex items-center space-x-4 mb-6">
-                                <label for="production-date" class="font-medium">Date:</label>
-                                <input type="date" v-model="scheduleDate" id="production-date-display" class="p-2 border rounded-md">
-                            </div>
-                            <div class="space-y-6">
-                                <div v-for="(bay, bayIndex) in schedule" :key="bay.id" :class="bay.bgColorClass" class="p-4 rounded-lg">
-                                    <h3 class="font-bold text-lg" :class="bay.textColorClass">{{ bay.name }}</h3>
-                                    <div v-for="(product, productIndex) in bay.products" :key="productIndex" class="mt-2">
-                                        <p class="text-sm font-medium text-gray-700">Product: <span class="font-normal">{{ getProductName(product.productId) }}</span></p>
-                                        <div class="mt-4 space-y-4">
-                                            <div v-for="(task, taskIndex) in product.tasks" :key="taskIndex" v-if="task.show" class="p-3 bg-white/60 rounded-md">
-                                                <h4 class="font-semibold">{{ task.name }}</h4>
-                                                <div class="mt-2">
-                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Assigned:</label>
-                                                    <div class="flex flex-wrap gap-2 items-center">
-                                                        <span v-for="empId in task.assignedEmployeeIds" :key="empId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                            {{ getEmployeeName(empId) }}
-                                                        </span>
-                                                         <span v-if="!task.assignedEmployeeIds || task.assignedEmployeeIds.length === 0" class="text-xs text-gray-400">
-                                                            No one assigned
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="adminView === 'staffing'" class="space-y-8">
+                    <div class="space-y-8">
                         <div class="bg-white p-6 rounded-lg shadow-md">
                             <div class="flex items-center space-x-4 mb-6">
                                 <label for="week-select" class="font-medium">Staff Availability:</label>
@@ -355,56 +204,10 @@
                                 </div>
                             </div>
                     </div>
-                    
-                    <div v-if="adminView === 'calendar'" class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="flex justify-between items-center mb-4">
-                            <button @click="previousMonth" class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">&lt; Prev</button>
-                            <h2 class="text-2xl font-bold">{{ calendar.monthName }} {{ calendar.year }}</h2>
-                            <button @click="nextMonth" class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">Next &gt;</button>
-                        </div>
-                        <div class="grid grid-cols-7 gap-1 text-center font-bold">
-                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                        </div>
-                        <div class="grid grid-cols-7 gap-1 mt-2">
-                            <div v-for="day in calendar.days" :key="day.date" class="border rounded-md p-1 h-48" :class="{'bg-gray-50': !day.isCurrentMonth}">
-                                <div class="font-bold" :class="{'text-gray-400': !day.isCurrentMonth}">{{ day.dayOfMonth }}</div>
-                                <div v-if="day.isCurrentMonth" class="space-y-1 mt-1">
-                                    <div v-for="bay in day.bays" :key="bay.name" class="p-1 rounded-md text-xs" :class="bay.bgColorClass">
-                                        <select v-model="bay.productId" @change="saveCalendarData" class="w-full text-xs border-gray-300 rounded-md shadow-sm">
-                                            <option value="">{{ bay.name }}</option>
-                                            <option v-for="product in products" :value="product.id">{{ product.name }}</option>
-                                        </select>
-                                        <input type="number" v-model="bay.batches" @change="saveCalendarData" class="w-full text-xs border-gray-300 rounded-md shadow-sm mt-1" placeholder="Batches">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </main>
         </template>
 
-        <div v-if="isEditModalOpen" class="modal-backdrop">
-            <div class="modal-content">
-                <h2 class="text-xl font-bold mb-4">Edit Product</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium">Product Name</label>
-                        <input v-model="editingProduct.name" class="w-full p-2 border rounded-md mt-1">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium">Tasks (one per line)</label>
-                        <textarea v-model="editingProduct.tasks" class="w-full p-2 border rounded-md mt-1 h-32"></textarea>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button @click="closeEditModal" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button @click="saveEditedProduct" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Save Changes</button>
-                </div>
-            </div>
-        </div>
-        
         <div v-if="isEditSlotModalOpen" class="modal-backdrop">
             <div class="modal-content">
                 <h2 class="text-xl font-bold mb-4">Edit Time Slot</h2>
@@ -467,17 +270,9 @@
                 const isAuthReady = ref(false);
                 const isAdmin = ref(false);
                 const isEmployeeView = ref(true);
-                const products = ref([]);
                 const employees = ref([]);
-                const scheduleDate = ref(new Date().toISOString().split('T')[0]);
-                const schedule = ref([]);
-                const employeeTodaysScheduleData = ref([]);
-                const employeeTomorrowsScheduleData = ref([]);
-                const newProduct = ref({ name: '', tasks: '' });
                 const newEmployeeName = ref('');
                 const authDetails = ref({ username: '', password: '', error: '' });
-                const isEditModalOpen = ref(false);
-                const editingProduct = ref({ id: null, name: '', tasks: '' });
                 const selectedWeek = ref(getWeekId(new Date()));
                 const availabilityData = ref({});
                 const confirmedHoursData = ref({});
@@ -489,11 +284,9 @@
                 const editingConfirmedSlot = ref({ employeeId: null, day: null, originalValue: '', newValue: '' });
                 const isEmployeeProfileReady = ref(false);
                 const loggedInEmployeeId = ref(null);
-                const adminView = ref('plan'); // 'scheduling', 'staffing', 'calendar'
-                const currentDate = ref(new Date());
                 
-                let productsCollection, employeesCollection, schedulesCollection, availabilityCollection, confirmedHoursCollection, calendarCollection;
-                let productsUnsubscribe, employeesUnsubscribe, scheduleUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe, todaysScheduleUnsubscribe, tomorrowsScheduleUnsubscribe, calendarUnsubscribe;
+                let employeesCollection, availabilityCollection, confirmedHoursCollection;
+                let employeesUnsubscribe, availabilityUnsubscribe, confirmedHoursUnsubscribe;
 
                 const timeOptions = computed(() => {
                     const options = [];
@@ -596,14 +389,9 @@
                 const logout = async () => { await signOut(auth); };
 
                 const initializeFirestoreListeners = () => {
-                    productsCollection = collection(db, 'products');
                     employeesCollection = collection(db, 'employees');
-                    schedulesCollection = collection(db, 'schedules');
                     availabilityCollection = collection(db, 'availability');
                     confirmedHoursCollection = collection(db, 'confirmed_hours');
-                    calendarCollection = collection(db, 'calendar');
-                    
-                    productsUnsubscribe = onSnapshot(query(productsCollection), snap => products.value = snap.docs.map(d => ({ id: d.id, ...d.data(), showTasks: false })));
                     
                     employeesUnsubscribe = onSnapshot(query(employeesCollection), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -614,32 +402,14 @@
                         }
                     });
                     
-                    loadSchedule();
                     loadAvailability();
                     loadConfirmedHours();
-                    loadTodaysScheduleForEmployee();
-                    loadTomorrowsScheduleForEmployee();
-                    
-                    watch(currentDate, () => {
-                        if(adminView.value !== 'calendar') return;
-                        if (calendarUnsubscribe) calendarUnsubscribe();
-                        const monthId = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}`;
-                        const docRef = doc(calendarCollection, monthId);
-                        calendarUnsubscribe = onSnapshot(docRef, (docSnap) => {
-                            calendarData.value = docSnap.exists() ? docSnap.data() : {};
-                        });
-                    }, { immediate: true });
                 };
                 
                 const cleanupFirestoreListeners = () => {
-                    if (productsUnsubscribe) productsUnsubscribe();
                     if (employeesUnsubscribe) employeesUnsubscribe();
-                    if (scheduleUnsubscribe) scheduleUnsubscribe();
                     if (availabilityUnsubscribe) availabilityUnsubscribe();
                     if (confirmedHoursUnsubscribe) confirmedHoursUnsubscribe();
-                    if (todaysScheduleUnsubscribe) todaysScheduleUnsubscribe();
-                    if (tomorrowsScheduleUnsubscribe) tomorrowsScheduleUnsubscribe();
-                    if(calendarUnsubscribe) calendarUnsubscribe();
                 };
 
                 const loadAvailability = () => {
@@ -651,6 +421,7 @@
                         availabilityData.value = docSnap.exists() ? docSnap.data() : {};
                     });
                 };
+
                 const loadConfirmedHours = () => {
                     if (confirmedHoursUnsubscribe) confirmedHoursUnsubscribe();
                     if (!user.value || !selectedWeek.value) return;
@@ -658,34 +429,6 @@
                     const docRef = doc(confirmedHoursCollection, weekDocId);
                     confirmedHoursUnsubscribe = onSnapshot(docRef, (docSnap) => {
                         confirmedHoursData.value = docSnap.exists() ? docSnap.data() : {};
-                    });
-                };
-
-                const loadTodaysScheduleForEmployee = () => {
-                    if (todaysScheduleUnsubscribe) todaysScheduleUnsubscribe();
-                    const todaysDate = new Date().toISOString().split('T')[0];
-                    const scheduleDocRef = doc(schedulesCollection, todaysDate);
-                    todaysScheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
-                        if (docSnap.exists() && Array.isArray(docSnap.data().bays)) {
-                            employeeTodaysScheduleData.value = docSnap.data().bays;
-                        } else {
-                            employeeTodaysScheduleData.value = [];
-                        }
-                    });
-                };
-
-                const loadTomorrowsScheduleForEmployee = () => {
-                    if (tomorrowsScheduleUnsubscribe) tomorrowsScheduleUnsubscribe();
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowsDate = tomorrow.toISOString().split('T')[0];
-                    const scheduleDocRef = doc(schedulesCollection, tomorrowsDate);
-                    tomorrowsScheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
-                        if (docSnap.exists() && Array.isArray(docSnap.data().bays)) {
-                            employeeTomorrowsScheduleData.value = docSnap.data().bays;
-                        } else {
-                            employeeTomorrowsScheduleData.value = [];
-                        }
                     });
                 };
 
@@ -825,32 +568,11 @@
                     return confirmedHoursData.value[employeeId]?.[day] || [];
                 };
 
-                const isEmployeeAvailable = (employeeId, day) => {
-                    const slots = availabilityData.value[employeeId]?.[day];
-                    return Array.isArray(slots) && slots.length > 0;
-                };
-
                 watch(selectedWeek, () => {
                     loadAvailability();
                     loadConfirmedHours();
                 });
 
-                const addProduct = async () => {
-                    if (!newProduct.value.name.trim()) return;
-                    await addDoc(productsCollection, { name: newProduct.value.name, tasks: newProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
-                    newProduct.value = { name: '', tasks: '' };
-                };
-                const deleteProduct = async (id) => { await deleteDoc(doc(productsCollection, id)); };
-                const openEditModal = (product) => {
-                    editingProduct.value = { id: product.id, name: product.name, tasks: product.tasks.join('\n') };
-                    isEditModalOpen.value = true;
-                };
-                const closeEditModal = () => { isEditModalOpen.value = false; };
-                const saveEditedProduct = async () => {
-                    const productDocRef = doc(productsCollection, editingProduct.value.id);
-                    await updateDoc(productDocRef, { name: editingProduct.value.name, tasks: editingProduct.value.tasks.split('\n').map(t => t.trim()).filter(t => t) });
-                    closeEditModal();
-                };
                 const addEmployee = async () => {
                     const name = newEmployeeName.value.trim();
                     if (!name) return;
@@ -866,233 +588,15 @@
                 };
                 const deleteEmployee = async (id) => { await deleteDoc(doc(employeesCollection, id)); };
 
-                const loadSchedule = async () => {
-                    if (scheduleUnsubscribe) scheduleUnsubscribe();
-                    const scheduleDocRef = doc(schedulesCollection, scheduleDate.value);
-                    scheduleUnsubscribe = onSnapshot(scheduleDocRef, (docSnap) => {
-                        if (docSnap.exists() && Array.isArray(docSnap.data().bays)) {
-                            let bays = docSnap.data().bays;
-                            if (bays.length > 0 && bays[0].productId !== undefined) {
-                                bays = bays.map(bay => ({
-                                    ...bay,
-                                    products: [{ productId: bay.productId, tasks: bay.tasks.map(task => ({...task, show: true})) }],
-                                    productId: undefined, 
-                                    tasks: undefined
-                                }));
-                            }
-                            schedule.value = bays;
-                        } else {
-                            schedule.value = [
-                                { id: 1, name: 'Green Bay', bgColorClass: 'bg-green-100', textColorClass: 'text-green-800', products: [{ productId: '', tasks: [] }] },
-                                { id: 2, name: 'Blue Bay', bgColorClass: 'bg-blue-100', textColorClass: 'text-blue-800', products: [{ productId: '', tasks: [] }] },
-                                { id: 3, name: 'Orange Bay', bgColorClass: 'bg-orange-100', textColorClass: 'text-orange-800', products: [{ productId: '', tasks: [] }] },
-                                { id: 4, name: 'Purple Bay', bgColorClass: 'bg-purple-100', textColorClass: 'text-purple-800', products: [{ productId: '', tasks: [] }] }
-                            ];
-                        }
-                    });
-                };
-
-                const updateProductTasks = (bayIndex, productIndex) => {
-                    const productSelection = schedule.value[bayIndex].products[productIndex];
-                    const selectedProduct = products.value.find(p => p.id === productSelection.productId);
-                    if (selectedProduct) {
-                        productSelection.tasks = selectedProduct.tasks.map(name => ({ name, assignedEmployeeIds: [], show: true }));
-                    } else {
-                        productSelection.tasks = [];
-                    }
-                    saveSchedule();
-                };
-
-                const saveSchedule = async () => {
-                    if (!user.value || !scheduleDate.value) return;
-                    await setDoc(doc(schedulesCollection, scheduleDate.value), {
-                        bays: JSON.parse(JSON.stringify(schedule.value))
-                    });
-                };
-
-                const assignEmployee = (event, bayIndex, productIndex, taskIndex) => {
-                    const employeeId = event.target.value;
-                    const task = schedule.value[bayIndex].products[productIndex].tasks[taskIndex];
-                    if (employeeId && !task.assignedEmployeeIds.includes(employeeId)) {
-                        task.assignedEmployeeIds.push(employeeId);
-                        saveSchedule();
-                    }
-                    event.target.value = '';
-                };
-
-                const unassignEmployee = (bayIndex, productIndex, taskIndex, employeeId) => {
-                    const task = schedule.value[bayIndex].products[productIndex].tasks[taskIndex];
-                    task.assignedEmployeeIds = task.assignedEmployeeIds.filter(id => id !== employeeId);
-                    saveSchedule();
-                };
-
-                const getEmployeeName = (id) => employees.value.find(e => e.id === id)?.name || 'Unknown';
-                const getProductName = (id) => products.value.find(p => p.id === id)?.name || 'No Product Selected';
-                const unassignedEmployees = (task) => employees.value.filter(emp => !task.assignedEmployeeIds.includes(emp.id));
-
                 const toggleView = () => { isEmployeeView.value = !isEmployeeView.value; };
                 
-                const employeeTodaysTasks = computed(() => {
-                    if (!user.value || employeeTodaysScheduleData.value.length === 0) return [];
-                    const employeeId = loggedInEmployeeId.value;
-                    if (!employeeId) return [];
-                    
-                    const tasks = [];
-                    employeeTodaysScheduleData.value.forEach(bay => {
-                        bay.products.forEach(product => {
-                            const productName = products.value.find(p => p.id === product.productId)?.name || 'Unknown Product';
-                            product.tasks.forEach(task => {
-                                if (task.assignedEmployeeIds.includes(employeeId)) {
-                                    tasks.push({ 
-                                        id: `${bay.id}-${task.name}`, 
-                                        productName, 
-                                        taskName: task.name,
-                                        bayName: bay.name,
-                                        bayColorClass: `${bay.bgColorClass.replace('-100', '-200')} ${bay.textColorClass.replace('-800', '-900')}`
-                                    });
-                                }
-                            });
-                        });
-                    });
-                    return tasks;
-                });
-                
-                const employeeTomorrowsTasks = computed(() => {
-                    if (!user.value || employeeTomorrowsScheduleData.value.length === 0) return [];
-                    const employeeId = loggedInEmployeeId.value;
-                    if (!employeeId) return [];
-                    
-                    const tasks = [];
-                    employeeTomorrowsScheduleData.value.forEach(bay => {
-                        bay.products.forEach(product => {
-                            const productName = products.value.find(p => p.id === product.productId)?.name || 'Unknown Product';
-                            product.tasks.forEach(task => {
-                                if (task.assignedEmployeeIds.includes(employeeId)) {
-                                    tasks.push({ 
-                                        id: `${bay.id}-${task.name}-tomorrow`, 
-                                        productName, 
-                                        taskName: task.name,
-                                        bayName: bay.name,
-                                        bayColorClass: `${bay.bgColorClass.replace('-100', '-200')} ${bay.textColorClass.replace('-800', '-900')}`
-                                    });
-                                }
-                            });
-                        });
-                    });
-                    return tasks;
-                });
-
-
-                watch(scheduleDate, (newDate) => {
-                    loadSchedule();
-                    const newWeekId = getWeekId(new Date(newDate + 'T00:00:00'));
-                    if (newWeekId !== selectedWeek.value) {
-                        selectedWeek.value = newWeekId;
-                    }
-                });
-                
-                const calendarData = ref({});
-                const calendar = computed(() => {
-                    const year = currentDate.value.getFullYear();
-                    const month = currentDate.value.getMonth();
-                    const monthName = currentDate.value.toLocaleString('default', { month: 'long' });
-
-                    const firstDayOfMonth = new Date(year, month, 1).getDay();
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                    let days = [];
-                    for (let i = 0; i < firstDayOfMonth; i++) {
-                        days.push({ dayOfMonth: '', isCurrentMonth: false });
-                    }
-                    for (let i = 1; i <= daysInMonth; i++) {
-                        const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                        const dayData = calendarData.value[date] || {
-                            bays: [
-                                { name: 'Green Bay', bgColorClass: 'bg-green-100', productId: '', batches: '' },
-                                { name: 'Blue Bay', bgColorClass: 'bg-blue-100', productId: '', batches: '' },
-                                { name: 'Orange Bay', bgColorClass: 'bg-orange-100', productId: '', batches: '' },
-                                { name: 'Purple Bay', bgColorClass: 'bg-purple-100', productId: '', batches: '' }
-                            ]
-                        };
-                        days.push({ dayOfMonth: i, isCurrentMonth: true, date, bays: dayData.bays });
-                    }
-                    return { year, monthName, days };
-                });
-
-                const previousMonth = () => {
-                    currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() - 1));
-                };
-
-                const nextMonth = () => {
-                    currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() + 1));
-                };
-
-                const saveCalendarData = async () => {
-                    const monthId = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}`;
-                    const docRef = doc(calendarCollection, monthId);
-                    const dataToSave = {};
-                    calendar.value.days.forEach(day => {
-                        if (day.isCurrentMonth) {
-                            dataToSave[day.date] = { bays: day.bays };
-                        }
-                    });
-                    await setDoc(docRef, dataToSave, { merge: true });
-                };
-
-                watch(adminView, (newView) => {
-                    if (newView === 'calendar') {
-                        if (calendarUnsubscribe) calendarUnsubscribe();
-                        const monthId = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}`;
-                        const docRef = doc(calendarCollection, monthId);
-                        calendarUnsubscribe = onSnapshot(docRef, (docSnap) => {
-                            calendarData.value = docSnap.exists() ? docSnap.data() : {};
-                        });
-                    }
-                });
-                
-                const addProductToBay = (bayIndex) => {
-                    schedule.value[bayIndex].products.push({ productId: '', tasks: [] });
-                    saveSchedule();
-                };
-
-                const removeProductFromBay = (bayIndex, productIndex) => {
-                    schedule.value[bayIndex].products.splice(productIndex, 1);
-                    saveSchedule();
-                };
-
-                const toggleProductTasks = (productId) => {
-                    const product = products.value.find(p => p.id === productId);
-                    if (product) {
-                        product.showTasks = !product.showTasks;
-                    }
-                };
-
-                const toggleTaskVisibility = (bayIndex, productIndex, taskIndex) => {
-                    const task = schedule.value[bayIndex].products[productIndex].tasks[taskIndex];
-                    task.show = !task.show;
-                    saveSchedule();
-                };
-                
-                const restoreHiddenTasks = (bayIndex, productIndex) => {
-                    const product = schedule.value[bayIndex].products[productIndex];
-                    product.tasks.forEach(task => task.show = true);
-                    saveSchedule();
-                };
-
-
                 return {
                     user, isAuthReady, authDetails, register, login, logout,
                     isAdmin, isEmployeeView, toggleView,
-                    products, newProduct, addProduct, deleteProduct,
                     employees, newEmployeeName, addEmployee, deleteEmployee,
-                    schedule, scheduleDate, loadSchedule, updateProductTasks, saveSchedule,
-                    isEditModalOpen, editingProduct, openEditModal, closeEditModal, saveEditedProduct,
-                    assignEmployee, unassignEmployee, getEmployeeName, getProductName, unassignedEmployees,
-                    employeeTodaysTasks,
-                    employeeTomorrowsTasks,
                     selectedWeek, weekDates, formatDay,
                     getEmployeeAvailability, getEmployeeAvailabilityForAdmin,
-                    isEmployeeAvailable, newTimeSlots, addEmployeeTimeSlot, removeEmployeeTimeSlot,
+                    newTimeSlots, addEmployeeTimeSlot, removeEmployeeTimeSlot,
                     isEditSlotModalOpen, editingSlot, openEditSlotModal, closeEditSlotModal, saveEditedSlot,
                     isEmployeeProfileReady,
                     // Confirmed Hours
@@ -1102,16 +606,6 @@
                     getConfirmedHoursForEmployee,
                     timeOptions,
                     toggleConfirmation,
-                    adminView,
-                    calendar,
-                    previousMonth,
-                    nextMonth,
-                    saveCalendarData,
-                    addProductToBay,
-                    removeProductFromBay,
-                    toggleProductTasks,
-                    toggleTaskVisibility,
-                    restoreHiddenTasks
                 };
             }
         }).mount('#app');
